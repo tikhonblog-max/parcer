@@ -1,0 +1,1271 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0c0d12">
+<title>Парсер клиентов — поиск бизнесов с телефонами</title>
+<meta name="description" content="Поиск бизнесов по городу и нише: телефоны, WhatsApp, Telegram, сайты. Данные OpenStreetMap, 2ГИС, Яндекс, Google. Работает в браузере.">
+<meta property="og:title" content="Парсер клиентов"><meta property="og:description" content="Найдите бизнесы с телефонами и контактами по городу и нише">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%94%8D%3C/text%3E%3C/svg%3E">
+<script>function tgInit(){try{const w=Telegram.WebApp;w.ready();w.expand();for(const f of[()=>w.setHeaderColor('#0c0d12'),()=>w.setBackgroundColor('#0c0d12'),()=>w.disableVerticalSwipes()])try{f()}catch(e){}}catch(e){}}</script>
+<script async src="https://telegram.org/js/telegram-web-app.js" onload="tgInit()"></script>
+<style>
+:root{--bg:#0c0d12;--card:#14161e;--line:#262a38;--tx:#f1f2f6;--mut:#8c92a6;--ok:#4ade80;--bad:#f87171;--warn:#fbbf24;--blue:#60a5fa}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:0 14px 60px}
+.top{position:sticky;top:0;background:var(--bg);padding:12px 0 8px;z-index:5;display:flex;gap:8px;align-items:center}
+.top b{font-size:20px;flex:1}
+.tab{background:none;border:1px solid var(--line);color:var(--mut);border-radius:999px;padding:8px 14px;font:inherit;font-size:14px}
+.tab.on{background:var(--tx);color:#000;border-color:var(--tx)}
+.box{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;margin:10px 0}
+label{display:block;color:var(--mut);font-size:13px;margin:12px 0 5px}
+input,select,textarea{width:100%;background:#0c0d12;color:var(--tx);border:1px solid var(--line);border-radius:12px;padding:13px;font:inherit}
+textarea{min-height:130px;resize:vertical}
+.chk{display:flex;gap:10px;align-items:center;margin:12px 0 0;color:var(--tx);font-size:15px}
+.chk input{width:20px;height:20px;margin:0}
+.btn{border:1px solid var(--line);background:none;color:var(--tx);border-radius:14px;padding:12px 14px;font:inherit;font-size:15px;text-decoration:none;text-align:center;cursor:pointer;display:inline-block}
+.btn.main{background:var(--tx);color:#000;border:0;width:100%;margin-top:16px;font-weight:600;padding:15px}
+.btn[disabled]{opacity:.5}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.row>*{flex:1 1 auto}
+.msg{color:var(--mut);font-size:14px;margin-top:12px;min-height:20px}
+.sub{color:var(--mut);font-size:14px}
+.name{font-size:20px;font-weight:700;padding-right:30px}
+.x{position:absolute;right:14px;top:12px;background:none;border:0;color:var(--mut);font-size:22px}
+.lead{position:relative}
+.ph{display:block;font-size:20px;font-weight:600;margin:8px 0;color:var(--tx);text-decoration:none}
+.tag{display:inline-block;font-size:12px;border:1px solid var(--line);border-radius:8px;padding:2px 8px;margin:4px 6px 0 0;color:var(--mut)}
+.tag.g{color:var(--ok);border-color:#1f5a38}
+.st{display:flex;gap:6px;margin-top:12px}
+.st button{flex:1;border:1px solid var(--line);background:none;color:var(--mut);border-radius:12px;padding:10px 2px;font:inherit;font-size:13px}
+.st .wrote.on{background:#1e3a5f;color:var(--blue);border-color:var(--blue)}
+.st .replied.on{background:#4a3a10;color:var(--warn);border-color:var(--warn)}
+.st .refused.on{background:#4a1d1d;color:var(--bad);border-color:var(--bad)}
+.st .client.on{background:#14432a;color:var(--ok);border-color:var(--ok)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding:4px 0 8px}
+.chips button{white-space:nowrap;border:1px solid var(--line);background:none;color:var(--mut);border-radius:999px;padding:7px 12px;font:inherit;font-size:13px}
+.chips .on{background:var(--tx);color:#000}
+.hide{display:none}
+.empty{color:var(--mut);text-align:center;padding:40px 10px}
+body{padding-bottom:120px}
+.top{padding:16px 0 10px;border-bottom:1px solid var(--line);margin:0 -14px 10px;padding-left:14px}
+.top b{font-size:22px}
+label{text-transform:uppercase;letter-spacing:.06em;font-size:12px;margin:20px 0 8px}
+label.chk{text-transform:none;letter-spacing:0;font-size:15px;color:var(--tx)}
+input,select,textarea{border-radius:18px;padding:16px;background:var(--card)}
+.box{border-radius:26px}
+.btn{border-radius:18px}.btn.w{background:#f3f3f3;color:#000;border:0;font-weight:600}
+.btn.main{border-radius:20px;padding:18px;font-size:17px}
+h2{margin:18px 0 6px;font-size:28px}
+.nav{position:fixed;left:10px;right:10px;max-width:560px;margin:0 auto;bottom:14px;background:#12141b;border:1px solid var(--line);border-radius:999px;display:flex;justify-content:space-between;padding:5px;z-index:9;box-shadow:0 6px 30px #000a}
+.nav button{background:none;border:1px solid transparent;color:var(--mut);display:flex;align-items:center;gap:6px;padding:9px;white-space:nowrap;font-size:14px;border-radius:999px;font:inherit;font-weight:600}
+.nav button span{display:none}.nav button.on{border-color:var(--tx);color:var(--tx);padding:9px 12px}.nav button.on span{display:inline}
+.nav svg{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.stat{display:grid;grid-template-columns:1fr 1fr;gap:12px}.stat .box{margin:0}.stat b{display:block;font-size:44px;margin-top:6px}
+.bar{display:flex;align-items:center;gap:12px;margin:14px 0}.bar i{flex:1;height:10px;border-radius:9px;background:#1d2029;overflow:hidden}.bar u{display:block;height:100%;background:#f3f3f3;border-radius:9px}.bar em{width:48px;text-align:right;color:var(--mut);font-style:normal}.bar span{width:84px}
+.pr{display:flex;justify-content:space-between;font-size:19px;margin:16px 0}.pr b{font-size:20px}
+.nav button{padding:8px}.nav button.on{padding:8px 11px}.nav svg{width:21px;height:21px}
+.note{min-height:90px;margin-top:6px}.due{display:flex;gap:8px}.due input{flex:1;min-width:0}
+.tag.r{color:var(--bad);border-color:#6b2a2a}.tag.y{color:var(--warn);border-color:#6b5316}
+.klab{font-size:12px;color:var(--mut);margin:12px 0 4px;text-transform:uppercase;letter-spacing:.06em}
+#sheet{position:fixed;inset:0;z-index:30}.sh-bg{position:absolute;inset:0;background:#000b}
+.sh{position:absolute;left:0;right:0;bottom:0;max-height:90vh;overflow:auto;background:#13151c;border:1px solid var(--line);border-radius:28px 28px 0 0;padding:20px 16px 26px;max-width:640px;margin:0 auto}
+.sh h3{margin:0;font-size:22px;padding-right:56px;line-height:1.25}
+.sh .cl{position:absolute;right:14px;top:14px;width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--tx);font-size:24px;line-height:1}
+.vc{display:flex;gap:8px;overflow-x:auto;margin:16px 0 14px;padding-bottom:2px}
+.vc button{white-space:nowrap;border:1px solid var(--line);background:none;color:var(--tx);border-radius:999px;padding:12px 18px;font:inherit;font-size:16px}
+.vc .on{background:#f3f3f3;color:#000;border-color:#f3f3f3}
+#shta{min-height:240px;font-size:17px;line-height:1.5;border-radius:22px}
+.toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:#f3f3f3;color:#000;padding:12px 20px;border-radius:999px;font-weight:600;z-index:40}
+.foot{color:var(--mut);font-size:12px;text-align:center;margin:26px 8px 0;line-height:1.5}.foot a{color:var(--blue)}
+.dg{white-space:pre-line;font-size:13px;color:var(--mut);margin-top:10px}
+select.sm{padding:12px 14px;border-radius:14px;font-size:14px;margin-bottom:6px}
+.mi{display:flex;gap:6px;align-items:center;color:var(--mut);font-size:13px;margin:0 0 8px}
+.nt{margin-top:12px}.nt summary{cursor:pointer;padding:4px 0}
+</style></head><body>
+<noscript><div style="padding:20px;color:#f87171">Для работы нужен включённый JavaScript.</div></noscript>
+<div class="top"><b>Парсер</b><button class="tab" id="subpill"></button></div>
+
+<div id="p1">
+ <div class="box" id="subbox"><b id="subt"></b><div class="sub" id="subs" style="margin-top:4px"></div>
+  <button class="btn main" id="subbuy1" style="margin-top:12px">100 бизнесов в день — 390 ₽ / месяц</button>
+  <button class="btn main" id="subbuy2" style="margin-top:8px">Безлимит — 590 ₽ / месяц</button>
+  <label>Промокод</label><input id="promo2" placeholder="XXXXX-XXXXX-XXXXX" autocomplete="off" autocapitalize="characters" spellcheck="false">
+  <button class="btn w" id="subgo" style="width:100%;margin-top:10px">Активировать промокод</button><div class="msg" id="subm"></div></div>
+ <div class="box" id="intro"><b>Как начать</b><div class="sub" style="margin-top:6px">1. Укажите город (можно несколько через «;») и нишу. 2. Нажмите «Найти бизнесов». 3. Во вкладке «Лиды» звоните или пишите в WhatsApp / Telegram и отмечайте статусы.</div><button class="btn" id="introx" style="margin-top:12px">Понятно</button></div>
+ <label>Страна</label><select id="cc"><option value="ru">Россия</option><option value="by">Беларусь</option><option value="kz">Казахстан</option></select>
+ <label>Город или регион</label><input id="city" list="cities" placeholder="Например: Орехово-Зуево; Ногинск" autocomplete="off"><datalist id="cities"></datalist>
+ <label>Ниша</label><select id="niche"></select>
+ <div id="own" class="hide"><label>Что искать (слово в названии, можно несколько через запятую)</label><input id="ownq" placeholder="например: шиномонтаж, вулканизация"></div>
+ <label>Сколько</label><select id="lim"><option value="10">10 бизнесов</option><option value="20">20 бизнесов</option><option value="50" selected>50 бизнесов</option><option value="100">100 бизнесов</option><option value="200">200 бизнесов</option><option value="0">Сколько найдётся</option></select>
+ <label class="chk"><input type="checkbox" id="fPh" checked>Только с телефоном</label>
+ <label class="chk"><input type="checkbox" id="fSite">Только без сайта</label>
+ <label class="chk"><input type="checkbox" id="fMob">Только с мобильным (WhatsApp / Telegram)</label>
+ <label class="chk"><input type="checkbox" id="fFresh">Только свежие данные (не старше 3 лет)</label>
+ <label class="chk"><input type="checkbox" id="fEmail">Только с email</label>
+ <label class="chk"><input type="checkbox" id="fChain">Скрыть сети (3+ филиала с одним названием)</label>
+ <label class="chk"><input type="checkbox" id="fDup" checked>Не повторять один номер у разных бизнесов</label>
+ <label class="chk"><input type="checkbox" id="fEnrich" checked>Дополнять телефоны и контакты с сайтов бизнесов (до 2 минут)</label>
+ <div class="sub" style="margin:14px 6px">Совет: «* Все ниши *» ищет сразу по всем нишам и перемешивает результаты, чтобы вы видели разные направления. Лучшие контакты (мобильный, без сайта, свежие данные) показываются первыми.</div>
+ <div class="sub" id="srcl" style="margin:0 6px"></div>
+ <button class="btn main" id="go">Найти бизнесов</button>
+ <button class="btn hide" id="stop" style="width:100%;margin-top:10px">Отменить поиск</button>
+ <div class="msg" id="msg"></div>
+ <button class="btn" id="diag" style="width:100%;margin-top:10px">Проверить подключение к картам</button><div class="dg" id="diagm"></div>
+ <label>Недавние запросы</label><div class="chips" id="hist"></div>
+</div>
+
+<div id="p2" class="hide"><div class="msg" id="res" style="margin:4px 4px 0;color:var(--ok)"></div>
+ <div class="chips" id="chips"></div>
+ <div class="chips" id="qchips"></div>
+ <select id="fn" class="hide" style="margin-bottom:6px"></select>
+ <select id="srt" class="sm"><option value="order">Сначала новые добавленные</option><option value="best">Лучшие контакты сверху</option><option value="fresh">Свежие данные сверху</option><option value="name">По названию А–Я</option></select>
+ <input id="q" placeholder="Поиск по названию, адресу, телефону" style="margin-bottom:6px">
+ <div class="sub" id="cnt" style="margin:2px 6px 8px"></div><div id="list"></div>
+ <div class="row"><button class="btn w" id="qgo">▶ Режим работы</button><button class="btn w" id="qfu">⏰ Follow-up (<span id="qfn">0</span>)</button><button class="btn" id="syn">⟳ Синхронизировать</button><button class="btn" id="cph">Копировать номера</button><button class="btn" id="csv">CSV: показанные</button><button class="btn" id="csvall">CSV: вся база</button><button class="btn" id="xls">Excel: показанные</button><button class="btn" id="vcf">vCard: показанные</button><button class="btn" id="cwa">Копировать WhatsApp-ссылки</button><button class="btn" id="delnp">Удалить новых без телефона</button><button class="btn" id="clr">Очистить всё</button></div>
+ <div class="sub" id="synm" style="margin:8px 4px"></div>
+</div>
+
+<div id="p6" class="hide"><h2>Клиенты</h2><div class="sub" id="csum"></div><div id="clist"></div></div>
+<div id="p3" class="hide"><h2>Скрипты</h2>
+ <div class="sub">Готовые сообщения под каждую нишу открываются кнопкой «✦ Скрипт» на карточке бизнеса. Здесь — ваше имя и ваши сохранённые тексты.</div>
+ <label>Как вас представить</label><input id="me" placeholder="Ваше имя">
+ <label>Мои скрипты</label><div id="mylist"></div>
+ <label>Добавить свой скрипт</label><textarea id="newsc" placeholder="Можно использовать {name} — название бизнеса и {city} — город"></textarea>
+ <button class="btn main" id="addsc" style="margin-top:12px">Добавить в мои скрипты</button></div>
+<div id="p4" class="hide"><h2>Статистика</h2><div id="stats"></div></div>
+<div id="p5" class="hide"><h2>Помощь</h2>
+ <div class="box"><b>Как пользоваться</b><p class="sub">1. «Поиск»: город, ниша, «Найти бизнесов». 2. «Лиды»: звоните, открывайте карту или «Скрипт» с кнопками WhatsApp/Telegram. 3. Отмечайте «Написал / Ответил / Отказ / Клиент» — статистика считается сама.</p></div>
+ <details class="box"><summary><b>Для продвинутых: общий сервер (необязательно)</b></summary>
+ <p class="sub">Обычному пользователю это не нужно — парсер работает сам, прямо из браузера. Поле нужно только если вы подняли собственный сервер для команды.</p>
+ <label>Адрес сервера</label><input id="sv" placeholder="https://ваш-сервер" autocomplete="off">
+ <label>Командный токен</label><input id="svt" placeholder="пароль команды" autocomplete="off">
+ <button class="btn" id="svb" style="margin-top:14px;width:100%">Подключить сервер</button><div class="msg" id="svm"></div>
+ <p class="sub">Не забудьте указать своё имя во вкладке «Скрипты»: оно показывается коллегам в статусе лида.</p></details>
+ <details class="box"><summary><b>Свои ключи карт (необязательно)</b></summary>
+ <p class="sub">Без ключей работает OpenStreetMap (по тегам и по названиям). Каждый ключ подключает ещё одну карту: результаты объединяются, повторы склеиваются, а бизнес, найденный сразу в нескольких картах, поднимается выше. Все ключи бесплатные в пределах квот; хранятся только в вашем браузере.</p>
+ <label>2ГИС — dev.2gis.ru</label><input id="key" placeholder="ключ 2ГИС" autocomplete="off">
+ <label>Яндекс Карты — «Поиск по организациям», developer.tech.yandex.ru</label><input id="kya" placeholder="ключ Яндекса" autocomplete="off">
+ <label>Google Places API (New) — console.cloud.google.com</label><input id="kgg" placeholder="ключ Google" autocomplete="off">
+ <label>TomTom Search — developer.tomtom.com</label><input id="ktt" placeholder="ключ TomTom" autocomplete="off">
+ <label>HERE — developer.here.com</label><input id="khe" placeholder="ключ HERE" autocomplete="off">
+ <button class="btn" id="kt" style="margin-top:14px;width:100%">Проверить ключи</button><div class="msg" id="ktm"></div>
+ <p class="sub">Квоты: Яндекс — около 500 запросов в сутки, Google — платный сверх бесплатного лимита. В режиме «* Все ниши *» делается по одному запросу на каждую из 35 ниш на каждую карту, поэтому лимит набирается быстро.</p></details>
+ <div class="box"><b>Резервная копия</b><p class="sub">Лиды хранятся только в этом браузере. Сохраните копию, чтобы не потерять их при очистке данных или смене телефона.</p><div class="row"><button class="btn" id="bk">Сохранить копию</button><button class="btn" id="rs">Восстановить</button></div></div>
+ <div class="box"><b>О данных</b><p class="sub">Контакты берутся из открытых карт и публикуются самими организациями, поэтому у части бизнесов телефона нет, а часть данных может устареть. Чем свежее отметка «обновлено» в карточке — тем выше шанс, что номер рабочий. Ключи 2ГИС / Яндекса дают самые свежие данные. Перед массовыми рассылками проверяйте требования закона (38-ФЗ «О рекламе»).</p><div class="sub" id="ver"></div></div>
+ <div id="sup" class="sub" style="margin:8px 4px"></div>
+ <div class="sub">Контакты показываются только если организация сама их указала. Всё хранится в вашем браузере.</div></div>
+<div class="foot">Данные карт: © участники <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> (ODbL), а также 2ГИС, Яндекс, Google, TomTom, HERE — если подключены ваши ключи. Контакты публикуются самими организациями. Используйте их в рамках закона (38-ФЗ «О рекламе», 152-ФЗ «О персональных данных»): не рассылайте спам и прекращайте контакт по просьбе.</div>
+<div id="sheet" class="hide"><div class="sh-bg" data-s="close"></div><div class="sh" id="sh"></div></div>
+<nav class="nav">
+ <button id="n1" class="on"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span>Поиск</span></button>
+ <button id="n2"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg><span>Лиды</span></button>
+ <button id="n6"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.5-4 3-6 6.5-6s6 2 6.5 6M16 11.5a3 3 0 100-6M18 14.5c2 .6 3.3 2.5 3.5 5.5"/></svg><span>Клиенты</span></button>
+ <button id="n3"><svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7zM15 3v4h4M10 12h6M10 16h6"/></svg><span>Скрипты</span></button>
+ <button id="n4"><svg viewBox="0 0 24 24"><path d="M6 20V10M12 20V4M18 20v-7"/></svg><span>Статистика</span></button>
+ <button id="n5"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 115 .5c0 1.5-2.5 2-2.5 3.5M12 17h.01"/></svg><span>Помощь</span></button>
+</nav>
+<script>
+// Необязательный адрес собственного сервера. Пусто — всё работает прямо из браузера.
+const API_URL='';
+/* Настройки продукта: название, ссылка на поддержку (например https://t.me/ваш_ник), версия */
+const CONFIG={brand:'Парсер клиентов',support:'https://t.me/Zamorochimcya',supportLabel:'Написать в поддержку',version:'2.6'};
+try{tgInit()}catch(e){}
+let SRV='';
+const TGW=()=>{try{return window.Telegram&&Telegram.WebApp&&Telegram.WebApp.initData?Telegram.WebApp:null}catch(e){return null}};
+function ext(u){const w=TGW();try{if(w&&/^https?:/i.test(u)){if(/^https?:\/\/(t|telegram)\.me\//i.test(u)&&w.openTelegramLink)w.openTelegramLink(u);else w.openLink(u);return}}catch(e){}window.open(u,'_blank')}
+function copyText(t){return new Promise((res,rej)=>{
+ const fb=()=>{try{const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0;top:0';document.body.appendChild(a);a.focus();a.select();const ok=document.execCommand('copy');a.remove();ok?res():rej(new Error('copy'))}catch(e){rej(e)}};
+ try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(res,fb);return}}catch(e){}
+ fb();})}
+document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[target=_blank]');if(a&&TGW()&&/^https?:/i.test(a.href)){e.preventDefault();ext(a.href)}});
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const N={
+'Барбершопы':[['shop','hairdresser','барбер|barber']],
+'Салоны красоты':[['shop','beauty|hairdresser']],
+'Маникюр и ногти':[['shop','beauty','ногт|маникюр|nail']],
+'Автосервисы':[['shop','car_repair|tyres'],['craft','car_repair']],
+'Стоматологии':[['amenity','dentist'],['healthcare','dentist']],
+'Фитнес и спортзалы':[['leisure','fitness_centre|sports_centre']],
+'Кофейни и кафе':[['amenity','cafe']],
+'Рестораны':[['amenity','restaurant']],
+'Массаж и SPA':[['shop','massage'],['leisure','spa'],['amenity','spa']],
+'Косметология':[['shop','beauty','космет|cosmet']],
+'Медицинские центры':[['amenity','clinic|doctors'],['healthcare','clinic|doctor|centre']],
+'Пиццерии и суши':[['amenity','restaurant|fast_food','пицц|суши|sushi|pizza|ролл']],
+'Пекарни и кондитерские':[['shop','bakery|pastry|confectionery']],
+'Цветочные магазины':[['shop','florist']],
+'Автомойки и детейлинг':[['amenity','car_wash'],['shop','car_repair','детейлинг|detailing']],
+'Ремонт и строительство':[['craft','builder|carpenter|electrician|plumber|roofer|painter|tiler|plasterer'],['office','construction_company']],
+'Агентства недвижимости':[['office','estate_agent']],
+'Юристы':[['office','lawyer|notary']],
+'Ветклиники':[['amenity','veterinary']],
+'Языковые и детские школы':[['amenity','language_school|music_school']],
+'Детские центры':[['amenity','childcare|kindergarten']],
+'Танцевальные студии':[['leisure','dance']],
+'Тату-салоны':[['shop','tattoo']],
+'Парикмахерские':[['shop','hairdresser']],
+'Гостиницы и хостелы':[['tourism','hotel|hostel|guest_house|motel']],
+'Бани и сауны':[['leisure','sauna'],['amenity','public_bath']],
+'Фотостудии':[['shop','photo_studio|photo'],['craft','photographer']],
+'Бухгалтерия':[['office','accountant']],
+'Мебель на заказ':[['craft','carpenter'],['shop','furniture','заказ']],
+'Автошколы':[['amenity','driving_school']],
+'Зоомагазины и груминг':[['shop','pet|pet_grooming']],
+'Магазины одежды':[['shop','clothes']],
+'Ремонт телефонов и техники':[['craft','electronics_repair'],['shop','mobile_phone','ремонт|сервис']],
+'Химчистки и прачечные':[['shop','dry_cleaning|laundry']],
+'Ювелирные мастерские':[['shop','jewelry'],['craft','jeweller']],
+'Своя ниша':null};
+const ST=[['wrote','Написал'],['replied','Ответил'],['refused','Отказ'],['client','Клиент']];
+const NP={
+'Барбершопы':['барбершопов','сайт с услугами, ценами, работами мастеров и онлайн-записью к конкретному барберу, а также Telegram-бот (сам записывает к мастеру, напоминает о визите и зовёт вернуться через месяц)','сайт с онлайн-записью к барберу'],
+'Салоны красоты':['салонов красоты','сайт с каталогом услуг и ценами, онлайн-запись к мастеру и Telegram-бот, который напоминает клиентам о визите','сайт с онлайн-записью'],
+'Маникюр и ногти':['студий маникюра','сайт с портфолио работ и онлайн-записью на удобное время, а также Telegram-бот с напоминаниями о визите','сайт с портфолио и записью'],
+'Автосервисы':['автосервисов','сайт с перечнем работ и ценами, заявка на ремонт онлайн и Telegram-бот для записи и напоминаний о ТО','сайт с заявкой на ремонт'],
+'Стоматологии':['стоматологий','сайт с врачами, услугами и ценами, онлайн-запись на приём и напоминания пациентам','сайт с онлайн-записью на приём'],
+'Фитнес и спортзалы':['фитнес-клубов','сайт с расписанием, тарифами и заявкой на пробную тренировку, а также Telegram-бот для записи','сайт с расписанием и заявкой на пробное'],
+'Кофейни и кафе':['кофеен и кафе','сайт с меню, фото и контактами, бронь столика или заказ через Telegram-бот','сайт с меню и бронью'],
+'Рестораны':['ресторанов','сайт с меню, фото зала и онлайн-бронью столиков, а также Telegram-бот для заказов','сайт с меню и бронью'],
+'Массаж и SPA':['массажных и SPA-салонов','сайт с программами и ценами, онлайн-запись и напоминания клиентам в Telegram','сайт с онлайн-записью'],
+'Косметология':['кабинетов косметологии','сайт с процедурами, ценами и фото «до/после», онлайн-запись и напоминания','сайт с процедурами и записью'],
+'Медицинские центры':['медицинских центров','сайт с врачами и услугами, онлайн-запись и напоминания пациентам','сайт с записью на приём'],
+'Пиццерии и суши':['пиццерий и суши-баров','сайт с меню и онлайн-заказом, а также Telegram-бот для приёма заказов','сайт с меню и заказом'],
+'Пекарни и кондитерские':['пекарен и кондитерских','сайт с каталогом и заказом тортов, Telegram-бот для предзаказов','сайт с каталогом и предзаказом'],
+'Цветочные магазины':['цветочных магазинов','сайт с каталогом букетов и заказом с доставкой, а также Telegram-бот для заказов','сайт с каталогом и заказом'],
+'Автомойки и детейлинг':['автомоек и детейлинг-студий','сайт с услугами и ценами и онлайн-запись на удобное время','сайт с онлайн-записью'],
+'Ремонт и строительство':['строительных и ремонтных компаний','сайт с портфолио объектов, ценами и формой заявки на расчёт','сайт с портфолио и заявкой'],
+'Агентства недвижимости':['агентств недвижимости','сайт с каталогом объектов и формой заявки, а также Telegram-бот для подбора','сайт с каталогом и заявками'],
+'Юристы':['юристов','сайт с услугами, кейсами и формой консультации, Telegram-бот для первичных обращений','сайт с формой консультации'],
+'Ветклиники':['ветеринарных клиник','сайт с врачами и ценами, онлайн-запись на приём и напоминания о прививках','сайт с записью на приём'],
+'Языковые и детские школы':['школ и студий','сайт с программами, расписанием и записью на пробное занятие','сайт с записью на пробное'],
+'Детские центры':['детских центров','сайт с программами и расписанием, запись на пробное занятие и Telegram-бот для родителей','сайт с записью на занятия'],
+'Танцевальные студии':['танцевальных студий','сайт с направлениями, расписанием и записью на пробное занятие','сайт с расписанием и записью'],
+'Тату-салоны':['тату-салонов','сайт с портфолио мастеров и онлайн-записью на сеанс','сайт с портфолио и записью'],
+'Парикмахерские':['парикмахерских','сайт с услугами, ценами и онлайн-записью к мастеру, а также Telegram-бот с напоминаниями','сайт с онлайн-записью'],
+'Гостиницы и хостелы':['гостиниц и хостелов','сайт с номерами, фото и онлайн-бронированием','сайт с номерами и бронью'],
+'Бани и сауны':['бань и саун','сайт с фото, ценами и онлайн-бронью времени','сайт с онлайн-бронью'],
+'Фотостудии':['фотостудий','сайт с залами и ценами и онлайн-бронью времени','сайт с залами и бронью'],
+'Бухгалтерия':['бухгалтерских компаний','сайт с услугами и тарифами и формой заявки','сайт с тарифами и заявкой'],
+'Мебель на заказ':['мебельных мастерских','сайт с портфолио работ и формой заявки на расчёт','сайт с портфолио и заявкой'],
+'Автошколы':['автошкол','сайт с тарифами, расписанием групп и записью на обучение','сайт с тарифами и записью'],
+'Зоомагазины и груминг':['зоомагазинов и грумеров','сайт с каталогом или услугами и онлайн-записью на груминг','сайт с записью на груминг'],
+'Магазины одежды':['магазинов одежды','сайт-каталог с заказом и Telegram-бот для заявок','сайт с каталогом и заказом'],
+'Ремонт телефонов и техники':['сервисов по ремонту техники','сайт с ценами на ремонт и формой заявки','сайт с ценами и заявкой'],
+'Химчистки и прачечные':['химчисток и прачечных','сайт с услугами, ценами и заказом с вывозом','сайт с заказом и ценами'],
+'Ювелирные мастерские':['ювелирных мастерских','сайт с портфолио изделий и заявкой на изготовление','сайт с портфолио и заявкой']};
+const NPD=['вашего бизнеса','сайт с услугами, ценами и онлайн-записью, а также Telegram-бот для приёма заявок','сайт с онлайн-записью'];
+const VT=[['first','Первое'],['short','Короткое'],['long','Подробное'],['call','Звонок'],['nosite','Нет сайта'],['rem','Напоминание'],['last','Последнее'],['mine','Мои']];
+const VS={
+first:['Здравствуйте! Меня зовут {me}, я делаю сайты и Telegram-ботов для {who}.\nНашёл «{name}» на карте и хотел предложить: {offer}.\nЕсли интересно, пришлю пример и примерную стоимость — это займёт пару минут.',
+'Добрый день! Это {me}. Увидел «{name}» ({city}) и подумал, что вам пригодится: {offer}.\nПоказать пример?',
+'Здравствуйте, «{name}»! Помогаю {who} получать больше заявок из интернета: {offer}.\nПришлю пример под ваш бизнес?'],
+short:['Здравствуйте! Делаю {short} для «{name}». Показать пример?',
+'Добрый день! Могу сделать для «{name}» {short} за несколько дней. Интересно?',
+'Здравствуйте! Есть идея, как «{name}» получать больше клиентов из интернета: {short}. Расскажу за минуту?'],
+long:['Здравствуйте! Меня зовут {me}, занимаюсь сайтами и Telegram-ботами для {who}.\n\nЧто получит «{name}»:\n• {offer}\n• Заявки и записи приходят вам напрямую в Telegram\n• Сайт удобно открывается с телефона и находится в Яндексе и Google\n\nСроки — от 3 до 7 дней, стоимость назову после короткого разговора. Могу прислать пример работы?',
+'Добрый день! Это {me}. Я разрабатываю сайты и ботов для {who}.\n\nДля «{name}» предлагаю: {offer}.\n\nКлиенты находят вас на карте, переходят на сайт и сразу оставляют заявку — без звонков и переписки. Подготовлю пример и расчёт, если скажете, что вам важнее: больше записей или меньше рутины.'],
+call:['Здравствуйте! Меня зовут {me}. Это «{name}»? Коротко: я делаю {short} для {who}. Удобно говорить минуту?\n\nЕсли да: «Клиенты ищут вас в интернете и на картах. Сайт с записью помогает не терять тех, кто не дозвонился. Могу прислать пример в WhatsApp или Telegram — на какой номер удобнее?»\nЕсли нет: «Когда лучше перезвонить?»\nЕсли «дорого»: «Понимаю. Пришлю пример и цену, а решение — после».',
+'Добрый день! {me}, звоню по поводу «{name}». Занимаюсь {short}. Можно задать один вопрос: клиенты сейчас записываются у вас только по телефону?\n\nПосле ответа: «Тогда есть вариант принимать записи круглосуточно и без звонков. Отправлю пример — куда удобнее, в WhatsApp или Telegram?»'],
+nosite:['Здравствуйте! Искал «{name}» ({city}) в интернете и не нашёл вашего сайта. Люди ищут услуги онлайн и уходят к тем, у кого он есть.\nМогу сделать {short} за несколько дней. Показать пример?',
+'Добрый день! У «{name}» пока нет сайта, а именно с него клиенты чаще всего принимают решение. Предлагаю: {offer}.\nПришлю пример и цену?'],
+rem:['Добрый день! Писал вам про сайт для «{name}». Если неактуально — скажите, не буду беспокоить. Если интересно, пришлю пример под ваш бизнес.',
+'Здравствуйте! Напоминаю про моё сообщение: {short} для «{name}». Удобно сейчас посмотреть пример?'],
+last:['Здравствуйте! Напишу в последний раз по поводу сайта для «{name}». Если тема неактуальна — просто скажите, закрою вопрос. Если интересно, пришлю пример и расчёт.',
+'Добрый день! Не хочу надоедать. Если когда-нибудь понадобится {short} для «{name}» — напишите, помогу. Хорошего дня!']};
+let MY=[];try{MY=JSON.parse(localStorage.getItem('cc_my')||'[]')}catch(e){}
+const saveMy=()=>{try{localStorage.setItem('cc_my',JSON.stringify(MY))}catch(e){}};
+function genText(l,k,alt){
+ const a=VS[k]||VS.first,t=a[((alt||0)%a.length+a.length)%a.length],pr=NP[l.niche]||NPD,me=($('#me').value||'').trim()||'[Ваше имя]';
+ return t.replace(/\{(\w+)\}/g,(m,x)=>({me,name:l.name,city:l.city,who:pr[0],offer:pr[1],short:pr[2]})[x]??m);
+}
+const fillMy=(t,l)=>t.replace(/\{name\}/g,l.name).replace(/\{city\}/g,l.city);
+let VIS=[],PG=1,LK='';let CANCELED=false,CANHOOK=null,NETDOWN=false;
+function cleanLead(r){
+ if(!r||typeof r!=='object'||typeof r.id!=='string'||typeof r.name!=='string'||!r.id||r.id.length>200)return null;
+ const o={...r};o.id=r.id.replace(/[^\w.:@+-]/g,'_');o.name=r.name.slice(0,200);
+ for(const k of['niche','city','addr','site','tg','wa','email','vk','ig','rate','upd','src','by','note','next','due']){if(o[k]==null)o[k]='';else if(typeof o[k]!=='string')o[k]=String(o[k])}
+ o.lat=r.lat!==null&&r.lat!==''&&Number.isFinite(+r.lat)?+r.lat:null;o.lon=r.lon!==null&&r.lon!==''&&Number.isFinite(+r.lon)?+r.lon:null;
+ o.ph=r.ph&&/^\d{9,15}$/.test(String(r.ph.d))?{d:String(r.ph.d),disp:String(r.ph.disp||('+'+r.ph.d)).slice(0,30),mob:!!r.ph.mob,tf:!!r.ph.tf}:null;
+ o.more=Array.isArray(r.more)?r.more.slice(0,3).map(x=>String(x).slice(0,30)):[];
+ o.st=['new','wrote','replied','refused','client'].includes(r.st)?r.st:'new';
+ o.wa=/^\d{9,15}$/.test(o.wa)?o.wa:'';o.tg=/^[A-Za-z0-9_]{0,40}$/.test(o.tg)?o.tg:'';
+ o.ts=+r.ts||Date.now();return o;
+}const chk=()=>{if(CANCELED)throw new Error('поиск отменён')};
+let L=[],F='all',open={},QF={ph:0,nosite:0,mob:0,hot:0,due:0};
+const QFN=[['ph','С телефоном'],['nosite','Без сайта'],['mob','Мобильный / WhatsApp'],['hot','★ Горячие'],['due','⏰ Пора связаться']];
+try{L=JSON.parse(localStorage.getItem('cc_leads')||'[]')}catch(e){}
+const snap=new Map();let DEL={};try{DEL=JSON.parse(localStorage.getItem('cc_del')||'{}')}catch(e){}
+const hs=l=>{const{ts,...r}=l;return JSON.stringify(r)};
+function stamp(){const now=Date.now(),ids=new Set();
+ for(const l of L){ids.add(l.id);const h=hs(l);if(snap.get(l.id)!==h){if(snap.has(l.id)||!l.ts)l.ts=now;snap.set(l.id,h)}}
+ for(const id of[...snap.keys()])if(!ids.has(id)){DEL[id]=now;snap.delete(id)}}
+const persist=()=>{try{localStorage.setItem('cc_leads',JSON.stringify(L));localStorage.setItem('cc_del',JSON.stringify(DEL))}catch(e){}};
+let qsT;const queueSync=()=>{if(!SV.sync)return;clearTimeout(qsT);qsT=setTimeout(()=>syncNow(true),4000)};
+const save=()=>{stamp();persist();queueSync()};
+const meN=()=>($('#me').value||'').trim();
+for(const l of L){if(!l.ts)l.ts=Date.now();snap.set(l.id,hs(l))}
+try{$('#me').value=localStorage.getItem('cc_me')||'';$('#city').value=localStorage.getItem('cc_city')||'';$('#key').value=localStorage.getItem('cc_key')||''}catch(e){}
+const ALL='* Все ниши *';
+const FK=['fPh','fSite','fMob','fFresh','fEmail','fChain','fDup','fEnrich','lim'];
+function saveF(){try{const o={};for(const k of FK){const e=$('#'+k);o[k]=e.type==='checkbox'?e.checked:e.value}localStorage.setItem('cc_f',JSON.stringify(o))}catch(e){}}
+try{const o=JSON.parse(localStorage.getItem('cc_f')||'{}');for(const k of FK){const e=$('#'+k);if(e&&k in o){if(e.type==='checkbox')e.checked=!!o[k];else e.value=o[k]}}}catch(e){}
+$('#niche').innerHTML=[ALL,...Object.keys(N)].map(k=>`<option>${esc(k)}</option>`).join('');
+try{const n0=localStorage.getItem('cc_niche');if(n0&&(N[n0]!==undefined||n0===ALL))$('#niche').value=n0;$('#cc').value=localStorage.getItem('cc_cc')||'ru'}catch(e){}
+let acT;$('#city').addEventListener('input',()=>{clearTimeout(acT);const v=$('#city').value.slice($('#city').value.lastIndexOf(';')+1).trim();if(v.length<3)return;acT=setTimeout(async()=>{try{
+ const full=$('#city').value,k0=full.lastIndexOf(';'),pre=k0>=0?full.slice(0,k0+1)+' ':'';
+ const cc=$('#cc').value,g=await tf('https://photon.komoot.io/api/?limit=8&lang=default&q='+encodeURIComponent(v),{},8000),seen=new Set(),o=[];
+ for(const f of g.features||[]){const p=f.properties||{};if(String(p.countrycode||'').toLowerCase()!==cc||!/^(city|district|county|state|locality)$/.test(p.type||''))continue;if(p.name&&!seen.has(p.name)){seen.add(p.name);o.push(p.name)}}
+ $('#cities').innerHTML=o.map(n=>`<option value="${esc(pre+n)}">`).join('')}catch(e){}},350)});
+$('#niche').onchange=()=>$('#own').classList.toggle('hide',$('#niche').value!=='Своя ниша');
+$('#niche').onchange();
+$('#fn').onchange=()=>render();
+function tab(n){for(let i=1;i<=6;i++){$('#p'+i).classList.toggle('hide',i!==n);$('#n'+i).classList.toggle('on',i===n)}if(n===2)render();if(n===3)rm();if(n===4)stats();if(n===6)rc();window.scrollTo(0,0)}
+for(let i=1;i<=6;i++)$('#n'+i).onclick=()=>tab(i);
+$('#me').oninput=()=>{try{localStorage.setItem('cc_me',$('#me').value)}catch(e){}};
+const KF={g2:'#key',ya:'#kya',gg:'#kgg',tt:'#ktt',he:'#khe'},KN={g2:'2ГИС',ya:'Яндекс',gg:'Google',tt:'TomTom',he:'HERE'};let K={};
+try{K=JSON.parse(localStorage.getItem('cc_keys')||'{}')}catch(e){}
+try{const o=localStorage.getItem('cc_key');if(o&&!K.g2)K.g2=o}catch(e){}
+function srcLine(){const on=Object.keys(KN).filter(k=>K[k]||(SV.url&&SV.prov[k])).map(k=>KN[k]);$('#srcl').textContent='Карты для поиска: OpenStreetMap'+(on.length?' + '+on.join(' + '):'')+(SV.url?' · сервер команды':'')+(on.length||SV.url?'':'. Бесплатные ключи 2ГИС или Яндекса («Помощь») добавят больше организаций и свежие телефоны.')}
+for(const k in KF){$(KF[k]).value=K[k]||'';$(KF[k]).oninput=()=>{K[k]=$(KF[k]).value.trim();try{localStorage.setItem('cc_keys',JSON.stringify(K));localStorage.setItem('cc_key',K.g2||'')}catch(e){}srcLine()}}
+$('#kt').onclick=async()=>{
+ const m=$('#ktm'),lines=[];m.style.whiteSpace='pre-line';m.textContent='Проверяю…';
+ const t=async(n,f)=>{try{lines.push(n+': '+await f())}catch(e){lines.push(n+': ошибка — '+em(e))}m.textContent=lines.join('\n')};
+ CC='ru';const c={city:'Москва',cc:'ru',geo:null,niche:'Кофейни и кафе',word:'',msg:{}};
+ if(hasProv('g2'))await t('2ГИС',async()=>{const j=await pget('g2','https://catalog.api.2gis.com/3.0/items?q='+encodeURIComponent('кафе Москва')+'&type=branch&page_size=5&fields=items.contacts');
+  if(j.meta&&j.meta.code>=400)throw new Error((j.meta.error&&j.meta.error.message)||j.meta.code);
+  const it=(j.result&&j.result.items)||[],ph=it.filter(x=>(x.contacts||[]).some(g=>(g.contacts||[]).some(c=>c.type==='phone'))).length;
+  return 'ключ работает, организаций '+it.length+', с телефонами '+ph+(it.length&&!ph?' (телефоны на этом ключе не отдаются)':'')});
+ for(const P of PROV)if(hasProv(P.k))await t(P.name,async()=>{const r=(await P.page(c,'кафе','Кофейни и кафе',0,'')).items;return `работает, организаций ${r.length}, с телефонами ${r.filter(x=>x.ph).length}`});
+ if(!lines.length)m.textContent='Вставьте хотя бы один ключ или подключите сервер команды';
+};
+function rm(){$('#mylist').innerHTML=MY.length?MY.map((t,i)=>`<div class="box" style="position:relative"><button class="x" data-i="${i}">×</button><div style="white-space:pre-wrap;padding-right:28px">${esc(t)}</div></div>`).join(''):'<div class="sub">Пока пусто. Сохраняйте понравившиеся тексты кнопкой «Сохранить в мои скрипты» в окне скрипта.</div>'}
+$('#mylist').onclick=e=>{const i=e.target.dataset.i;if(i!=null){MY.splice(+i,1);saveMy();rm()}};
+$('#addsc').onclick=()=>{const t=$('#newsc').value.trim();if(t){MY.push(t);saveMy();$('#newsc').value='';rm();toast('Добавлено')}};
+let SH={id:null,k:'first',alt:0},tt;
+function toast(t){let d=$('#toast');if(!d){d=document.createElement('div');d.id='toast';d.className='toast';document.body.appendChild(d)}d.textContent=t;d.style.display='block';clearTimeout(tt);tt=setTimeout(()=>d.style.display='none',1600)}
+function shText(l){if(SH.k==='mine')return MY.length?fillMy(MY[SH.alt%MY.length],l):'';return genText(l,SH.k,SH.alt)}
+function shOpen(id){const l=L.find(x=>x.id===id);SH={id,k:l.site?'first':'nosite',alt:0};shRender();$('#sheet').classList.remove('hide')}
+function shClose(){$('#sheet').classList.add('hide')}
+function shRender(){
+ const l=L.find(x=>x.id===SH.id);if(!l){shClose();return}
+ const p=l.ph,tg=tgU(l);
+ const tabs=VT.filter(([k])=>k!=='nosite'||!l.site);
+ $('#sh').innerHTML=`<button class="cl" data-s="close">×</button><h3>Скрипт для «${esc(l.name)}»</h3>
+ <div class="vc">${tabs.map(([k,n])=>`<button data-s="tab" data-k="${k}" class="${SH.k===k?'on':''}">${n}</button>`).join('')}</div>
+ ${SH.k==='mine'?`<div class="mi">${MY.length?`Мой скрипт ${SH.alt%MY.length+1} из ${MY.length}`:'У вас пока нет сохранённых скриптов — сохраните любой текст кнопкой ниже.'}</div>`:''}
+ <textarea id="shta"></textarea><div class="sub" style="text-align:center;margin:10px 0">Текст можно править. Кнопки ниже берут то, что в поле.</div>
+ <div class="row"><button class="btn" data-s="alt">✦ Ещё вариант</button><button class="btn" data-s="save">Сохранить в мои скрипты</button></div>
+ <div class="row"><button class="btn w" data-s="copy">Копировать</button>${waN(l)?'<button class="btn" data-s="wa">WhatsApp</button>':''}${tg?'<button class="btn" data-s="tg">Telegram</button>':''}${p?`<a class="btn" href="tel:+${p.d}">Позвонить</a>`:''}</div>`;
+ $('#shta').value=shText(l);
+}
+$('#sheet').onclick=e=>{
+ const b=e.target.closest('[data-s]');if(!b)return;const a=b.dataset.s,l=L.find(x=>x.id===SH.id);
+ if(a==='close')return shClose();
+ if(a==='rsgo'){doRestore($('#shta').value);return}
+ if(a==='buy'){buyNow();return}
+ if(a==='redeem'){redeemUI();return}
+ if(a==='csvcopy'){copyText($('#shta').value).then(()=>toast('Скопировано'),()=>{$('#shta').select();toast('Выделено — скопируйте')});return}
+ if(!l)return;
+ if(/^q(wa|rep|skip|ref)$/.test(a)){qAct(a,l);return}
+ const txt=()=>$('#shta').value;
+ if(a==='tab'){SH.k=b.dataset.k;SH.alt=0;shRender()}
+ else if(a==='alt'){SH.alt++;shRender()}
+ else if(a==='copy'){copyText(txt()).then(()=>toast('Скопировано'),()=>{$('#shta').select();toast('Выделено — скопируйте')})}
+ else if(a==='save'){let t=txt().trim();if(!t)return;t=t.split(l.name).join('{name}').split(l.city).join('{city}');if(!MY.includes(t)){MY.push(t);saveMy()}toast('Сохранено в «Мои скрипты»')}
+ else if(a==='wa'||a==='tg'){
+  if(a==='wa')ext(`https://wa.me/${waN(l)}?text=${encodeURIComponent(txt())}`,'_blank');
+  else{try{copyText(txt());toast('Текст скопирован — вставьте в чат')}catch(_){}ext(tgU(l),'_blank')}
+  if(l.st==='new'){l.st='wrote';l.wts=Date.now();l.by=meN();if(!l.due)l.due=addD(3);save();render()}
+ }
+};
+const cntW=d=>{const t=new Date();t.setHours(0,0,0,0);const z=t.getTime()-d*864e5;return L.filter(l=>l.wts>=z).length};
+function nicheTbl(){const m={};for(const l of L){const o=m[l.niche]=m[l.niche]||{n:0,c:0,a:0};o.n++;if(l.st==='client')o.c++;if(l.st==='replied'||l.st==='client')o.a++}
+ const r=Object.entries(m).sort((a,b)=>b[1].c-a[1].c||b[1].a-a[1].a||b[1].n-a[1].n).slice(0,8);
+ return r.length?`<div class="box"><div class="sub" style="letter-spacing:.06em;text-transform:uppercase">По нишам</div>${r.map(([k,o])=>`<div class="pr" style="font-size:15px"><span>${esc(k)}</span><b style="font-size:15px">${o.n} · ответ ${o.a} · клиент ${o.c}</b></div>`).join('')}</div>`:''}
+function stats(){
+ const n=L.length,w=L.filter(x=>x.st==='wrote').length,r=L.filter(x=>x.st==='replied').length,c=L.filter(x=>x.st==='client').length,d=L.filter(x=>x.st==='refused').length;
+ const con=w+r+c,ans=r+c,pc=v=>n?Math.round(v/n*100):0;
+ const bx=(t,v)=>`<div class="box"><span class="sub">${t}</span><b>${v}</b></div>`;
+ const br=(t,v)=>`<div class="bar"><span>${t}</span><i><u style="width:${pc(v)}%"></u></i><em>${pc(v)}%</em></div>`;
+ $('#stats').innerHTML=`<div class="stat">${bx('Написано сегодня',cntW(0))}${bx('За 7 дней',cntW(6))}${bx('Найдено',n)}${bx('Связались',con)}${bx('Ответили',ans)}${bx('Клиенты',c)}</div>
+ <div class="box"><div class="sub" style="letter-spacing:.06em;text-transform:uppercase">Воронка</div>${br('Найдено',n)}${br('Связались',con)}${br('Ответили',ans)}${br('Клиенты',c)}</div>
+ <div class="box"><div class="pr"><span>Ответили от найденных</span><b>${pc(ans)}%</b></div><div class="pr"><span>Клиенты от найденных</span><b>${pc(c)}%</b></div><div class="pr"><span>Отказы</span><b>${d}</b></div></div>
+ ${nicheTbl()}<div class="sub">Статистика показывает только отмеченные вами статусы.</div>`;
+}
+const SECRET=atob('TjUtY0RZeWIwRDYtZ05YMkVHX0dVM29X'),AB='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',DAY0=Date.UTC(2025,0,1);
+function h53(str,seed){seed=seed||0;let h1=0xdeadbeef^seed,h2=0x41c6ce57^seed;for(let i=0,ch;i<str.length;i++){ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677)}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return 4294967296*(2097151&h2)+(h1>>>0)}
+function sig(p){let h=h53(SECRET+':'+p),o='';for(let i=0;i<8;i++){o+=AB[h%32];h=Math.floor(h/32)}return o}
+function checkCode(raw,nowMs){
+ const c=String(raw||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+ if(c.length!==15||[...c].some(x=>AB.indexOf(x)<0))return{ok:0,err:'Промокод введён неверно: нужно 15 символов, например XXXXX-XXXXX-XXXXX'};
+ if(sig(c.slice(0,7))!==c.slice(7))return{ok:0,err:'Такого промокода не существует. Проверьте символы'};
+ const plan=AB.indexOf(c[3])+1;if(plan<1||plan>2)return{ok:0,err:'Промокод недействителен'};
+ let d=0;for(const x of c.slice(0,3))d=d*32+AB.indexOf(x);
+ const t=Math.floor((nowMs-DAY0)/864e5);
+ if(t-d>60)return{ok:0,err:'Срок активации этого промокода истёк (60 дней со дня выдачи). Напишите продавцу'};
+ if(d-t>3)return{ok:0,err:'Промокод недействителен: проверьте дату на устройстве'};
+ return{ok:1,c,plan}}
+const FREE=10,PN={1:'100 в день',2:'Безлимит'},PRICE={1:390,2:590},SELLER='Zamorochimcya';
+const dd=n=>n%10===1&&n%100!==11?'день':([2,3,4].includes(n%10)&&!(n%100>=12&&n%100<=14))?'дня':'дней';
+const SUB={st:{e1:0,e2:0,used:[],seen:0,free:0,dn:0,dd:''},last:0,
+ load(){try{Object.assign(this.st,JSON.parse(localStorage.getItem('cc_sub2')||'{}'))}catch(e){}try{const m=document.cookie.match(/ccf=(\d+)/);if(m)this.st.free=Math.max(this.st.free||0,+m[1])}catch(e){}if(!Array.isArray(this.st.used))this.st.used=[]},
+ save(){try{localStorage.setItem('cc_sub2',JSON.stringify(this.st))}catch(e){}try{document.cookie='ccf='+(this.st.free||0)+';max-age=315360000;path=/;SameSite=Lax'}catch(e){}},
+ now(){const n=Math.max(Date.now(),this.st.seen||0);this.st.seen=n;return n},
+ plan(){const n=this.now();return(this.st.e2||0)>n?2:(this.st.e1||0)>n?1:0},
+ exp(){return this.plan()===2?this.st.e2:this.st.e1},
+ days(){return Math.max(0,Math.ceil((this.exp()-this.now())/864e5))},
+ today(){const k=new Date().toDateString();if(this.st.dd!==k){this.st.dd=k;this.st.dn=0}return this.st.dn},
+ quota(){const p=this.plan();return p===2?Infinity:p===1?Math.max(0,100-this.today()):Math.max(0,FREE-(this.st.free||0))},
+ used(n){const p=this.plan();if(p===2)return;if(p===1){this.today();this.st.dn+=n}else this.st.free=(this.st.free||0)+n;this.save()},
+ limitMsg(){return this.plan()===1?'Дневной лимит 100 бизнесов исчерпан — продолжите завтра или перейдите на «Безлимит».':`Бесплатный лимит (${FREE} бизнесов) исчерпан — нужна подписка.`}};
+SUB.load();
+function redeem(raw){
+ const r=checkCode(raw,SUB.now());if(!r.ok)return r.err;
+ if(SUB.st.used.includes(r.c))return'Этот промокод уже использован';
+ const k=r.plan===2?'e2':'e1';SUB.st[k]=Math.max(SUB.now(),SUB.st[k]||0)+30*864e5;SUB.st.used=[...SUB.st.used,r.c].slice(-60);SUB.last=r.plan;SUB.save();updatePill();return''}
+function updatePill(){const b=$('#subpill');if(!b)return;SUB.save();const p=SUB.plan(),d=SUB.days(),q=SUB.quota();
+ b.textContent=p===2?`✓ Безлимит · ${d} ${dd(d)}`:p===1?`✓ Сегодня: ${q} из 100`:(q>0?`Бесплатно: ${q}/${FREE}`:'Купить');b.classList.toggle('on',p>0);
+ const t=$('#subt'),u=$('#subs');if(!t)return;
+ t.textContent=p?`Подписка активна: ${PN[p]}`:(SUB.st.e1||SUB.st.e2?'Подписка закончилась':'Бесплатный режим');t.style.color=p?'var(--ok)':'';
+ u.textContent=p?`Осталось ${d} ${dd(d)} · до ${new Date(SUB.exp()).toLocaleDateString('ru-RU')}`+(p===1?` · сегодня можно найти ещё ${q} из 100`:''):`Бесплатно осталось ${q} из ${FREE} бизнесов, дальше — по подписке.`}
+function payOpen(){tab(1);window.scrollTo(0,0)}
+function buyNow(p){p=p||1;ext('https://t.me/'+SELLER+'?text='+encodeURIComponent(`Здравствуйте! Хочу купить подписку «${PN[p]}» на «${CONFIG.brand}» на 1 месяц (${PRICE[p]} ₽). Как оплатить?`))}
+let HITCAP=false;
+let SKIP=new Set,QM='new';
+function qRender(){
+ const q=(QM==='due'?L:VIS).filter(l=>(QM==='due'?(l.due&&l.due<=today()&&(l.st==='wrote'||l.st==='replied')):l.st==='new')&&!SKIP.has(l.id)).sort((a,b)=>score(b)-score(a)),l=q[0];
+ if(!l){openSheetHtml('<button class="cl" data-s="close">×</button><h3>Готово</h3><div class="sub" style="margin:12px 0">В очереди больше никого нет.</div>');return}
+ SH={id:l.id,k:QM==='due'?((l.fu||0)>=2?'last':'rem'):(l.site?'first':'nosite'),alt:0};
+ openSheetHtml(`<button class="cl" data-s="close">×</button><h3>${esc(l.name)}</h3><div class="sub">${esc(l.niche)} · ${esc(l.city)} · в очереди ${q.length}</div>${l.ph?`<a class="ph" href="tel:+${l.ph.d}">${esc(l.ph.disp)}</a>`:''}<textarea id="shta" style="min-height:170px"></textarea><div class="row">${waN(l)?'<button class="btn w" data-s="qwa">WhatsApp</button>':''}<button class="btn" data-s="qrep">Ответил</button></div><div class="row"><button class="btn" data-s="qskip">Пропустить</button><button class="btn" data-s="qref">Отказ</button></div>`);
+ $('#shta').value=genText(l,SH.k,0)}
+function qAct(a,l){if(a==='qwa'){ext(`https://wa.me/${waN(l)}?text=${encodeURIComponent($('#shta').value)}`);l.st='wrote';l.wts=Date.now();if(QM==='due'){l.fu=(l.fu||0)+1;l.due=l.fu>=3?'':addD(4)}else if(!l.due)l.due=addD(3)}else if(a==='qrep'){l.st='replied';l.due=addD(2)}else if(a==='qref'){l.st='refused';l.due=''}else SKIP.add(l.id);l.by=meN();save();render();qRender()}
+
+let CC='ru';
+/* ---------- телефоны ---------- */
+function normPhone(raw){
+ let d=String(raw||'').replace(/\D/g,'');
+ if(d.length<9||d.length>15)return null;
+ if(CC==='by'||d.startsWith('375')||(d.length===11&&d.startsWith('80'))){
+  if(d.length===11&&d.startsWith('80'))d='375'+d.slice(2);
+  else if(d.length===10&&d[0]==='0')d='375'+d.slice(1);
+  else if(d.length===9)d='375'+d;
+ }else{
+  if(d.length===11&&d[0]==='8')d='7'+d.slice(1);
+  else if(d.length===10)d='7'+d;
+ }
+ if(/^7\d{10}$/.test(d)){
+  if(!/^7[3-9]/.test(d)||/(\d)\1{6,}/.test(d)||/^7\d(\d)\1{8}$/.test(d)||d.slice(1)==='1234567890')return null;
+  return{d,disp:`+7 ${d.slice(1,4)} ${d.slice(4,7)}-${d.slice(7,9)}-${d.slice(9)}`,mob:!d.startsWith('7800')&&(d[1]==='9'||/^7(70|74|75|76|77|78)/.test(d)),tf:d.startsWith('7800')};
+ }
+ if(/^375\d{9}$/.test(d)){
+  if(!/^375(1[5-7]|2[1259]|33|44)/.test(d)||/(\d)\1{6,}/.test(d))return null;
+  return{d,disp:`+375 ${d.slice(3,5)} ${d.slice(5,8)}-${d.slice(8,10)}-${d.slice(10)}`,mob:/^375(25|29|33|44)/.test(d)};
+ }
+ if(d.length>=11&&d.length<=13&&!/(\d)\1{6,}/.test(d))return{d,disp:'+'+d,mob:false};
+ return null;
+}
+function parsePhones(raw){
+ const seen=new Set(),out=[];
+ for(const p of String(raw||'').split(/[;,|\/]|\sили\s/i)){
+  const r=normPhone(p.replace(/(доб|ext|вн)\.?.*$/i,''));
+  if(r&&!seen.has(r.d)){seen.add(r.d);out.push(r)}
+ }
+ return out.sort((a,b)=>(!!a.tf-!!b.tf)||(b.mob-a.mob));
+}
+const waN=l=>l.wa||(l.ph&&(l.ph.mob||!/^(7|375)/.test(l.ph.d))?l.ph.d:'');
+const tgU=l=>l.tg?`https://t.me/${l.tg}`:(waN(l)?`https://t.me/+${waN(l)}`:'');
+
+/* ---------- сеть ---------- */
+const em=e=>e&&e.errors?[...new Set(e.errors.map(x=>em(x)))].join(', '):(e&&e.name==='AbortError'?'таймаут':(e&&e.message)||String(e));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function tf(url,opt,ms){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||45000);try{const r=await fetch(url,{...opt,signal:c.signal});if(!r.ok)throw new Error('HTTP '+r.status);return await r.json()}finally{clearTimeout(t)}}
+async function tj(url,ms){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||30000);try{const r=await fetch(url,{signal:c.signal});try{return await r.json()}catch(e){throw new Error('HTTP '+r.status)}}finally{clearTimeout(t)}}
+/* ---------- нормализация и данные ---------- */
+const NT={'Барбершопы':['барбершоп'],'Салоны красоты':['салон красоты'],'Маникюр и ногти':['ногтевая студия','маникюр'],'Автосервисы':['автосервис'],'Стоматологии':['стоматология'],'Фитнес и спортзалы':['фитнес клуб','спортзал'],'Кофейни и кафе':['кофейня','кафе'],'Рестораны':['ресторан'],'Массаж и SPA':['массаж','спа салон'],'Косметология':['косметология'],'Медицинские центры':['медицинский центр','клиника'],'Пиццерии и суши':['пиццерия','суши'],'Пекарни и кондитерские':['пекарня','кондитерская'],'Цветочные магазины':['цветочный магазин'],'Автомойки и детейлинг':['автомойка'],'Ремонт и строительство':['строительная компания','ремонт квартир'],'Агентства недвижимости':['агентство недвижимости'],'Юристы':['юридические услуги','юрист'],'Ветклиники':['ветклиника'],'Языковые и детские школы':['языковая школа'],'Детские центры':['детский центр'],'Танцевальные студии':['танцевальная студия'],'Тату-салоны':['тату салон'],'Парикмахерские':['парикмахерская'],'Гостиницы и хостелы':['гостиница','хостел'],'Бани и сауны':['баня','сауна'],'Фотостудии':['фотостудия'],'Бухгалтерия':['бухгалтерские услуги'],'Мебель на заказ':['мебель на заказ'],'Автошколы':['автошкола'],'Зоомагазины и груминг':['зоомагазин','груминг'],'Магазины одежды':['магазин одежды'],'Ремонт телефонов и техники':['ремонт телефонов'],'Химчистки и прачечные':['химчистка','прачечная'],'Ювелирные мастерские':['ювелирная мастерская']};
+const NK=()=>Object.keys(N).filter(k=>N[k]);
+const NRX=[];for(const k of Object.keys(N))if(N[k])for(const [a,b,n] of N[k])NRX.push({k,a,re:new RegExp('^('+b+')$'),nr:n?new RegExp(n,'i'):null,w:b.split('|').length});
+NRX.sort((x,y)=>(!x.nr-!y.nr)||x.w-y.w);
+const classify=t=>{for(const r of NRX)if(t[r.a]&&r.re.test(t[r.a])&&(!r.nr||r.nr.test(t.name||'')))return r.k;return null};
+const wordList=w=>String(w||'').split(/[,;]/).map(s=>s.trim()).filter(Boolean);
+const cleanTg=v=>(v||'').replace(/^@/,'').replace(/^https?:\/\/(t\.me|telegram\.me)\//,'').split('?')[0];
+const nn=s=>String(s||'').toLowerCase().replace(/ё/g,'е').replace(/[«»"'`.,()\-–—_]/g,' ').replace(/(^|\s)(ооо|ип|зао|оао|ао)(?=\s|$)/g,' ').replace(/\s+/g,' ').trim();
+const SOC=/(^|\/\/|\.)(vk\.com|vk\.ru|instagram\.com|facebook\.com|fb\.com|ok\.ru|t\.me|telegram\.me|wa\.me|whatsapp\.com|youtube\.com|taplink\.cc|taplink\.ru|linktr\.ee|bio\.site|2gis\.\w+|yandex\.\w+|google\.\w+|zoon\.ru|flamp\.ru|yell\.ru|avito\.ru|profi\.ru)(\/|$)/i;
+const soc=(v,base)=>{v=String(v||'').trim();if(!v)return'';return /^https?:\/\//i.test(v)?v:/^(www\.)?[\w.-]+\.[a-z]{2,}\//i.test(v)?'https://'+v:base+v.replace(/^@/,'')};
+const ageY=l=>l.upd?(Date.now()-new Date(l.upd).getTime())/31557600000:null;
+function mk(id,name,niche,city,addr,phs,site,tg,lat,lon,x){
+ x=x||{};site=String(site||'').trim();let vk=x.vk||'',ig=x.ig||'',only=false;
+ if(site&&SOC.test(site)){
+  only=true;
+  if(/vk\.(com|ru)/i.test(site)&&!vk)vk=site;
+  else if(/instagram\.com/i.test(site)&&!ig)ig=site;
+  else if(/(t\.me|telegram\.me)\//i.test(site)&&!tg)tg=cleanTg(site.replace(/^https?:\/\//,'https://'));
+  site='';
+ }
+ const P=Array.isArray(phs)?phs:parsePhones(phs);
+ return{id,name:String(name||'').replace(/\s+/g,' ').trim(),niche,city,addr:addr||'',ph:P[0]||null,more:P.slice(1,3).map(p=>p.disp),site,tg:tg||'',lat,lon,
+  wa:x.wa||'',email:x.email||'',vk,ig,rate:x.rate||'',upd:x.upd||'',src:x.src||'',onlySoc:only,chain:x.brand?1:0,st:'new'};
+}
+const dead=t=>t.disused==='yes'||t.abandoned==='yes'||t.opening_hours==='off'||/закрыт|не работает|closed/i.test(t.note||'');
+function fromTags(id,t,niche,city,lat,lon,upd,src){
+ const raw=[t.phone,t['contact:phone'],t.mobile,t['contact:mobile'],t['phone:mobile'],t['contact:phone_1'],t.phone_1].filter(Boolean).join(';');
+ const waRaw=t['contact:whatsapp']||t.whatsapp||'';
+ const wp=parsePhones(waRaw);
+ const addr=[t['addr:street'],t['addr:housenumber']].filter(Boolean).join(', ')||t['addr:full']||t['addr:place']||'';
+ const dts=[upd,t.check_date,t['check_date:phone'],t['survey:date']].filter(x=>/^\d{4}/.test(x||'')).map(x=>x.slice(0,10)).sort();
+ return mk(id,t.name,niche,city,addr,parsePhones(raw+';'+waRaw),t.website||t['contact:website']||t.url||t['contact:url']||'',cleanTg(t['contact:telegram']||t.telegram),lat,lon,
+  {wa:wp[0]?wp[0].d:'',email:t.email||t['contact:email']||'',vk:soc(t['contact:vk']||t.vk||t['contact:vkontakte'],'https://vk.com/'),ig:soc(t['contact:instagram']||t.instagram,'https://instagram.com/'),upd:dts.length?dts[dts.length-1]:'',src,brand:t.brand||t['brand:wikidata']||''});
+}
+function dedupe(arr){
+ const out=[],m=new Map(),g=l=>(+l.lat).toFixed(3)+','+(+l.lon).toFixed(3);
+ const fill=(a,b)=>{
+  for(const k of['addr','site','tg','wa','email','vk','ig','rate'])if(!a[k]&&b[k])a[k]=b[k];
+  if(!a.ph&&b.ph)a.ph=b.ph;
+  const all=[b.ph&&b.ph.disp,...(b.more||[])].filter(Boolean);
+  a.more=a.more||[];
+  for(const d of all)if(a.ph&&d!==a.ph.disp&&!a.more.includes(d)&&a.more.length<2)a.more.push(d);
+  if(b.upd&&(!a.upd||b.upd>a.upd))a.upd=b.upd;
+  if(b.src&&!(a.src||'').includes(b.src))a.src=a.src?a.src+'+'+b.src:b.src;
+  if(!a.lat&&b.lat){a.lat=b.lat;a.lon=b.lon}
+  if(a.onlySoc&&b.site){a.onlySoc=false}
+ };
+ for(const l of arr){
+  const n=nn(l.name);if(!n)continue;
+  const ks=[l.ph&&n+'|'+l.ph.d,l.lat&&n+'|'+g(l),l.ph&&l.lat&&l.ph.d+'|'+g(l)].filter(Boolean);
+  const hit=ks.map(k=>m.get(k)).find(Boolean);
+  if(hit){fill(hit,l);ks.forEach(k=>m.set(k,hit))}else{out.push(l);ks.forEach(k=>m.set(k,l))}
+ }
+ return out;
+}
+function score(l){
+ let s=0;
+ if(l.ph){s+=l.ph.tf?1:5;if(l.ph.mob)s+=1.5}
+ if(l.wa)s+=1;if(l.tg)s+=.7;if(l.email)s+=.5;if(l.vk||l.ig)s+=.3;
+ if(!l.site)s+=2;
+ const a=ageY(l);if(a!=null)s+=a<1?2:a<3?1:a>6?-2:a>4?-1:0;
+ if(LIVE.test(l.src||''))s+=1.5;s+=Math.max(0,(l.src||'').split('+').length-1)*.8;
+ return s;
+}
+
+/* ---------- 2ГИС ---------- */
+async function by2gis(key,city,niche,word,msg){
+ const all=niche===ALL,out=[];let ext=true,ps=50;
+ async function pg(q,p){
+  for(let i=0;i<3;i++){
+   const j=await pget('g2',`https://catalog.api.2gis.com/3.0/items?q=${encodeURIComponent(q)}&type=branch&page=${p}&page_size=${ps}&fields=items.point,items.contacts,items.address_name${ext?',items.reviews':''}`);
+   const m=j.meta||{};
+   if(m.code&&m.code>=400){
+    const t=String((m.error&&m.error.message)||'');
+    if(m.code===404)return[];
+    if(ext&&/field|поле/i.test(t)){ext=false;continue}
+    if(m.code===400&&ps>10){ps=10;continue}
+    throw new Error('2ГИС '+m.code+': '+(t||'ключ не принят'));
+   }
+   return(j.result&&j.result.items)||[];
+  }
+  return[];
+ }
+ const conv=(x,nk)=>{
+  const phs=[],c={};
+  for(const g of x.contacts||[])for(const k of g.contacts||[]){
+   const v=k.value||k.text||'';if(!v)continue;
+   if(k.type==='phone')phs.push(v);
+   else if(k.type==='website'&&!c.site)c.site=v;
+   else if(k.type==='telegram'&&!c.tg)c.tg=cleanTg(v);
+   else if(k.type==='whatsapp'&&!c.wa){const n=normPhone(v.replace(/\D/g,''));if(n)c.wa=n.d}
+   else if(k.type==='email'&&!c.email)c.email=v;
+   else if(k.type==='vkontakte'&&!c.vk)c.vk=soc(v,'https://vk.com/');
+   else if(k.type==='instagram'&&!c.ig)c.ig=soc(v,'https://instagram.com/');
+  }
+  const r=x.reviews&&x.reviews.general_rating;
+  return mk('g'+x.id,x.name,nk,city,x.address_name||'',phs.join(';'),c.site||'',c.tg||'',x.point&&x.point.lat,x.point&&x.point.lon,
+   {wa:c.wa,email:c.email,vk:c.vk,ig:c.ig,rate:r?`★${r} (${x.reviews.general_review_count||0})`:'',src:'2ГИС',upd:today()});
+ };
+ const jobs=all?NK().map(k=>[k,[NT[k][0]],2]):[[niche,N[niche]?NT[niche]:wordList(word),10]];
+ let fail=null;
+ outer:for(let ji=0;ji<jobs.length;ji++){
+  const [nk,terms,maxp]=jobs[ji];
+  for(const term of terms){
+   const lastP=(ps<50&&!all)?maxp*2:maxp;
+   for(let p=1;p<=lastP;p++){
+    chk();
+    msg.textContent=`2ГИС: ${all?`${nk} (${ji+1}/${jobs.length})`:term}${all?'':`, страница ${p}`}…`;
+    let it;
+    try{it=await pg(term+' '+city,p)}catch(e){if(out.length){fail=e;break outer}throw e}
+    for(const x of it)out.push(conv(x,nk));
+    if(it.length<ps)break;
+    await sleep(150);
+   }
+  }
+ }
+ return out;
+}
+
+/* ---------- сервер команды, кэш, надёжный Overpass, синхронизация ---------- */
+let SV={url:'',tok:'',prov:{},sync:false,busy:0};
+try{const o=JSON.parse(localStorage.getItem('cc_sv')||'{}');SV.url=o.url||API_URL||'';SV.tok=o.tok||''}catch(e){}
+async function sj(path,opt,ms){
+ opt=opt||{};const raw=opt.raw,c=new AbortController(),t=setTimeout(()=>c.abort(),ms||30000);
+ try{
+  const r=await fetch(SV.url+path,{method:opt.method||'GET',body:opt.body,headers:{'Content-Type':'application/json',...(SV.tok?{'X-Token':SV.tok}:{}),...(opt.headers||{})},signal:c.signal});
+  if(r.status===401)throw new Error('неверный токен команды');
+  const tx=await r.text();
+  if(raw)return tx;
+  try{return JSON.parse(tx)}catch(e){throw new Error('сервер: HTTP '+r.status)}
+ }finally{clearTimeout(t)}
+}
+const KP={g2:'key',ya:'apikey',tt:'key',he:'apiKey'};
+async function pget(svc,u){
+ u=new URL(u);
+ if(K[svc]){u.searchParams.set(KP[svc],K[svc]);return tj(u.toString(),30000)}
+ if(SV.url&&SV.prov[svc])return sj('/px?svc='+svc+'&u='+encodeURIComponent(u.toString()),{},40000);
+ throw new Error('нет ключа');
+}
+async function ppost(svc,u,body,hd){
+ if(K[svc])return tp(u,body,{'X-Goog-Api-Key':K[svc],...hd},30000);
+ if(SV.url&&SV.prov[svc])return sj('/px?svc='+svc+'&u='+encodeURIComponent(u),{method:'POST',body:JSON.stringify(body),headers:{...hd}},40000);
+ throw new Error('нет ключа');
+}
+const hasProv=k=>!!(K[k]||(SV.url&&SV.prov[k]));
+
+/* локальный кэш (IndexedDB): повторный поиск не нагружает серверы карты, а при их отказе берутся последние данные */
+const hsh=s=>{let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return(h>>>0).toString(36)+s.length};
+const idb=()=>new Promise((res,rej)=>{try{const r=indexedDB.open('cc_cache',1);r.onupgradeneeded=()=>r.result.createObjectStore('q');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)}catch(e){rej(e)}});
+async function cget(k,any){try{const d=await idb();return await new Promise(res=>{const q=d.transaction('q').objectStore('q').get(k);q.onsuccess=()=>{const v=q.result;res(v&&(any||Date.now()-v.t<43200000)?v.v:null)};q.onerror=()=>res(null)})}catch(e){return null}}
+async function cset(k,v){try{const d=await idb();d.transaction('q','readwrite').objectStore('q').put({t:Date.now(),v},k)}catch(e){}}
+
+/* серверы Overpass: сначала быстрая проверка какие живы, затем запросы идут на самые быстрые, лишние отменяются */
+const OV=['https://overpass-api.de/api/interpreter','https://lz4.overpass-api.de/api/interpreter','https://z.overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter','https://overpass.openstreetmap.fr/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter','https://overpass.openstreetmap.ru/api/interpreter'];
+const OVBAD={};
+function race(tasks,gap){
+ return new Promise((resolve,reject)=>{
+  const cs=[],errs=[];let next=0,bad=0,fin=false;
+  const start=()=>{
+   if(fin||next>=tasks.length)return;
+   const i=next++,c=new AbortController();cs[i]=c;setTimeout(start,gap);
+   tasks[i](c.signal).then(v=>{if(fin)return;fin=true;cs.forEach((x,j)=>j!==i&&x.abort());resolve(v)},
+    e=>{errs.push(e);if(++bad===tasks.length&&!fin){fin=true;reject({errors:errs})}else start()});
+  };
+  start();
+ });
+}
+async function ovPost(u,body,sig){
+ const c=new AbortController(),on=()=>c.abort(),tm=setTimeout(on,45000);sig.addEventListener('abort',on);
+ try{
+  const r=await fetch(u,{method:'POST',body,headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:c.signal});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  let j;try{j=JSON.parse(await r.text())}catch(e){throw new Error('сервер перегружен')}
+  if(!j.elements)throw new Error('пустой ответ');
+  if(/runtime error|timed out|out of memory|Dispatcher_Client/i.test(j.remark||'')&&(!j.elements.length||/runtime error|timed out/i.test(j.remark)))throw new Error('сервер не успел');
+  OVBAD[u]=0;return j;
+ }catch(e){if(!sig.aborted)OVBAD[u]=Date.now()+(/HTTP (429|50\d|408)|перегружен|не успел/.test(e.message)?90000:45000);throw e}
+ finally{clearTimeout(tm);sig.removeEventListener('abort',on)}
+}
+let OVH_T=0,OVH_L=null,OVH_P=null;
+async function ovHealth(force){
+ if(!force&&OVH_L&&Date.now()-OVH_T<240000)return OVH_L;
+ if(OVH_P)return OVH_P;
+ OVH_P=Promise.all(OV.map(async u=>{
+  const t0=performance.now(),c=new AbortController(),tm=setTimeout(()=>c.abort(),7000);
+  try{
+   const r=await fetch(u,{method:'POST',body:'data='+encodeURIComponent('[out:json][timeout:5];node(1);out ids;'),headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:c.signal});
+   if(!r.ok)return{u,ok:0,e:'HTTP '+r.status};
+   const j=await r.json();if(!j.elements)return{u,ok:0,e:'пустой ответ'};
+   return{u,ok:1,ms:Math.round(performance.now()-t0)};
+  }catch(e){return{u,ok:0,e:e&&e.name==='AbortError'?'таймаут':'нет связи (сеть / блокировка)',net:!(e&&e.name==='AbortError')}}
+  finally{clearTimeout(tm)}
+ })).then(r=>{OVH_L=r;OVH_T=Date.now();return r}).finally(()=>{OVH_P=null});
+ return OVH_P;
+}
+async function ovDirect(q,force){
+ const h=await ovHealth(force);
+ if(h.every(x=>!x.ok&&x.net)){const e=new Error('нет соединения ни с одним сервером карты — проверьте интернет, отключите VPN или блокировщик рекламы');e.noNet=true;throw e}
+ const body='data='+encodeURIComponent(q),now=Date.now();
+ let ok=h.filter(x=>x.ok).sort((a,b)=>a.ms-b.ms).map(x=>x.u).filter(u=>(OVBAD[u]||0)<now);
+ if(!ok.length)ok=h.map(x=>x.u).sort(()=>Math.random()-.5);
+ const top=ok.slice(0,3),rest=ok.slice(3,5);
+ if(top.length>1&&Math.random()<.5)top.push(top.shift());
+ return race([...top,...rest].map(u=>sig=>ovPost(u,body,sig)),1800);
+}
+async function svOv(q){
+ const j=await sj('/ov',{method:'POST',body:JSON.stringify({q})},95000);
+ if(!j.elements)throw new Error(j.error||'сервер не вернул данные');
+ return j;
+}
+async function overpass(q,msg,opt){
+ opt=opt||{};
+ const ck='ov:'+hsh(q),hit=await cget(ck);if(hit)return hit;
+ const tries=opt.soft?2:4;let lastE=null;
+ for(let a=0;a<tries;a++){
+  chk();if(a){for(let s=[2,5,9][a-1];s>0;s--){chk();msg.textContent=`Серверы карты заняты, повтор через ${s} с (попытка ${a+1}/${tries})…`;await sleep(1000)}}
+  msg.textContent=a?`Опрашиваю серверы карты (попытка ${a+1}/${tries})…`:'Ищу на карте (проверяю и опрашиваю серверы)…';
+  try{
+   let j=null;
+   if(SV.url)try{j=await svOv(q)}catch(e){lastE=e}
+   if(!j)j=await ovDirect(q,a>=2);
+   cset(ck,j);return j;
+  }catch(e){lastE=e;if(e&&e.noNet)break}
+ }
+ const old=await cget(ck,true);if(old){old.__stale=true;return old}
+ if(lastE&&lastE.noNet)throw lastE;
+ throw new Error('серверы карты перегружены ('+em(lastE)+')');
+}
+const chunk=(a,n)=>Array.from({length:Math.ceil(a.length/n)},(_,i)=>a.slice(i*n,i*n+n));
+async function pool(jobs,n){let i=0;await Promise.all(Array.from({length:Math.min(n,jobs.length)},async()=>{while(i<jobs.length)await jobs[i++]()}))}
+
+/* ---------- подключение сервера команды ---------- */
+$('#sv').value=SV.url;$('#svt').value=SV.tok;
+$('#svb').onclick=async()=>{
+ const m=$('#svm');SV.url=$('#sv').value.trim().replace(/\/+$/,'');SV.tok=$('#svt').value.trim();SV.prov={};SV.sync=false;
+ try{localStorage.setItem('cc_sv',JSON.stringify({url:SV.url,tok:SV.tok}))}catch(e){}
+ if(!SV.url){m.textContent='Сервер отключён — поиск идёт напрямую из браузера.';srcLine();return}
+ m.textContent='Проверяю…';
+ try{
+  const j=await sj('/config',{},15000);if(!j.ok)throw new Error(j.error||'ошибка');
+  SV.prov=j.prov||{};SV.sync=!!j.sync;
+  const on=Object.keys(KN).filter(k=>SV.prov[k]).map(k=>KN[k]);
+  m.textContent='Сервер подключён. Карты с ключами на сервере: '+(on.length?on.join(', '):'нет, работает OpenStreetMap')+'. Общая база лидов: '+(SV.sync?'включена':'не подключена')+'.';
+  srcLine();if(SV.sync)syncNow(false);
+ }catch(e){m.textContent='Не удалось подключиться: '+em(e)}
+};
+async function SVinit(){
+ if(!SV.url)return;
+ try{const j=await sj('/config',{},12000);if(j.ok){SV.prov=j.prov||{};SV.sync=!!j.sync}}catch(e){}
+ srcLine();if(SV.sync)syncNow(true);
+}
+
+/* ---------- общая база лидов команды ---------- */
+let SYM={pushed:0,pulled:0};try{SYM={pushed:+localStorage.getItem('cc_pushed')||0,pulled:+localStorage.getItem('cc_pulled')||0}}catch(e){}
+async function syncNow(silent){
+ const m=$('#synm');
+ if(!SV.url||!SV.sync){if(!silent)m.textContent='Сервер команды не подключён: «Помощь» → «Сервер команды».';return}
+ if(SV.busy)return;SV.busy=1;
+ try{
+  if(!silent)m.textContent='Синхронизирую…';
+  stamp();const t0=Date.now();
+  const ups=L.filter(l=>l.ts&&l.ts>SYM.pushed&&l.ts<=t0),dels={};for(const id in DEL)if(DEL[id]>SYM.pushed)dels[id]=DEL[id];
+  const j=await sj('/sync',{method:'POST',body:JSON.stringify({leads:ups,dels,since:SYM.pulled})},60000);
+  if(!j.ok)throw new Error(j.error||'ошибка сервера');
+  const loc=new Map(L.map(l=>[l.id,l])),rep=new Map(),fresh=[],gone=new Set();
+  for(const r0 of j.leads||[]){const r=cleanLead(r0);if(!r)continue;const l=loc.get(r.id);if(!l){if(!(DEL[r.id]>=r.ts))fresh.push(r)}else if(r.ts>l.ts)rep.set(r.id,r)}
+  for(const id in j.dels||{}){const l=loc.get(id);if(l&&j.dels[id].ts>l.ts)gone.add(id)}
+  const ch=fresh.length+rep.size+gone.size;
+  L=[...fresh,...L.filter(l=>!gone.has(l.id)).map(l=>rep.get(l.id)||l)];
+  snap.clear();for(const l of L)snap.set(l.id,hs(l));
+  SYM.pushed=t0;SYM.pulled=j.now;
+  try{localStorage.setItem('cc_pushed',SYM.pushed);localStorage.setItem('cc_pulled',SYM.pulled)}catch(e){}
+  persist();
+  m.textContent=`Синхронизировано в ${new Date().toLocaleTimeString().slice(0,5)}. Отправлено: ${ups.length}, получено изменений: ${ch}.`;
+  if(ch){if(!$('#p2').classList.contains('hide'))render();if(!$('#p6').classList.contains('hide'))rc()}
+ }catch(e){m.textContent='Синхронизация не удалась: '+em(e)}
+ SV.busy=0;
+}
+$('#syn').onclick=()=>syncNow(false);
+$('#diag').onclick=async()=>{
+ const m=$('#diagm'),b=$('#diag');b.disabled=true;m.textContent='Проверяю серверы карты…';
+ try{
+  const h=await ovHealth(true),lines=h.map(x=>(x.ok?'✓ ':'✗ ')+x.u.replace(/^https:\/\//,'').split('/')[0]+(x.ok?' — '+x.ms+' мс':' — '+x.e));
+  let nom='✗ nominatim.openstreetmap.org (поиск города)';
+  try{await tf('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=Москва',{},10000);nom='✓ nominatim.openstreetmap.org (поиск города)'}catch(e){}
+  const okN=h.filter(x=>x.ok).length;
+  lines.push(nom);
+  lines.unshift(okN?`Доступно серверов карты: ${okN} из ${h.length}. Поиск должен работать.`:(h.every(x=>x.net)?'Нет связи ни с одним сервером: проверьте интернет, отключите VPN/блокировщик рекламы или откройте страницу не внутри приложения.':'Серверы карты сейчас перегружены — подождите 1–2 минуты или подключите ключи 2ГИС/Яндекс в «Помощь».'));
+  m.textContent=lines.join('\n');
+ }catch(e){m.textContent='Ошибка проверки: '+em(e)}
+ b.disabled=false;
+};
+window.addEventListener('unhandledrejection',e=>{try{console.warn(e.reason)}catch(_){}});
+
+/* ---------- общие помощники ---------- */
+const LIVE=/2ГИС|Яндекс|Google|TomTom|HERE/;
+const jobsFor=c=>c.niche===ALL?NK().map(k=>[k,NT[k][0]]):(N[c.niche]?NT[c.niche]:wordList(c.word)).map(t=>[c.niche,t]);
+const bb=g=>g&&g.bbox?{s:g.bbox[0],w:g.bbox[1],n:g.bbox[2],e:g.bbox[3],lat:(g.bbox[0]+g.bbox[2])/2,lon:(g.bbox[1]+g.bbox[3])/2}:null;
+const radius=b=>{const R=6371000,r=x=>x*Math.PI/180,d=R*Math.hypot(r(b.n-b.s),r(b.e-b.w)*Math.cos(r(b.lat)))/2;return Math.round(Math.min(50000,Math.max(3000,d)))};
+async function tp(url,body,hd,ms){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||30000);try{const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json',...hd},body:JSON.stringify(body),signal:c.signal});return await r.json()}finally{clearTimeout(t)}}
+const NNAME={
+'Барбершопы':'барбер|barber','Салоны красоты':'салон красоты|студия красоты|beauty','Маникюр и ногти':'маникюр|ногтев|nail',
+'Автосервисы':'автосервис|автотехцентр|шиномонтаж|автомастерск','Стоматологии':'стоматолог|dental|зубн','Фитнес и спортзалы':'фитнес|fitness|спортзал|тренажёрн|тренажерн|кроссфит|crossfit',
+'Кофейни и кафе':'кофейн|кафе|coffee','Рестораны':'ресторан|restaurant|гастробар','Массаж и SPA':'массаж|спа-салон|spa-салон','Косметология':'косметолог|cosmetol',
+'Медицинские центры':'медицинск|клиник|медцентр|поликлиник','Пиццерии и суши':'пицц|суши|sushi|pizza|роллы','Пекарни и кондитерские':'пекарн|кондитерск|булочн',
+'Цветочные магазины':'цветочн|флорист|букет','Автомойки и детейлинг':'автомойк|детейлинг|detailing','Ремонт и строительство':'ремонт квартир|строительн|отделочн',
+'Агентства недвижимости':'недвижимост|риэлт|риелт','Юристы':'юрист|юридическ|адвокат|нотариус','Ветклиники':'ветеринар|ветклиник',
+'Языковые и детские школы':'языковая школа|школа английского|лингв|музыкальная школа','Детские центры':'детский центр|детский клуб|развивающ',
+'Танцевальные студии':'танц|dance','Тату-салоны':'тату|tattoo|татуаж','Парикмахерские':'парикмахерск|стрижк','Гостиницы и хостелы':'гостиниц|хостел|hostel|мини-отель|гостевой дом',
+'Бани и сауны':'баня|бани|сауна|sauna','Фотостудии':'фотостуди','Бухгалтерия':'бухгалтер','Мебель на заказ':'мебель на заказ|кухни на заказ','Автошколы':'автошкол',
+'Зоомагазины и груминг':'зоомагазин|груминг','Магазины одежды':'магазин одежды','Ремонт телефонов и техники':'ремонт телефон|ремонт техники|сервисный центр|ремонт ноутбук|ремонт компьютер',
+'Химчистки и прачечные':'химчистк|прачечн','Ювелирные мастерские':'ювелир|jewel'};
+const LATE=['Медицинские центры','Кофейни и кафе','Рестораны','Салоны красоты'];
+const NNX=[...Object.keys(NNAME).filter(k=>!LATE.includes(k)),...LATE].map(k=>({k,re:new RegExp(NNAME[k],'i')}));
+const classifyName=n=>{for(const x of NNX)if(x.re.test(n||''))return x.k;return null};
+
+/* ---------- геокодер города (один раз на поиск) ---------- */
+async function geoCity(city,cc,msg){
+ msg.textContent='Ищу город…';
+ const ck='geo:'+cc+':'+city.toLowerCase(),hit=await cget(ck,true);if(hit)return hit;
+ try{
+  const g=await tf('https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=ru&countrycodes='+(cc||'ru')+'&q='+encodeURIComponent(city),{},20000);
+  const cl=x=>x.class||x.category;
+  const r=g.find(x=>x.osm_type==='relation'&&/^(boundary|place)$/.test(cl(x)))||g.find(x=>x.osm_type==='relation')||g.find(x=>x.osm_type==='way');
+  const b=(r||g[0]||{}).boundingbox;
+  const res={r:r?{type:r.osm_type,id:+r.osm_id}:null,bbox:b?[+b[0],+b[2],+b[1],+b[3]]:null};
+  if(res.bbox){cset(ck,res);return res}
+  throw new Error('город не найден');
+ }catch(e){
+  try{
+   const g=await tf('https://photon.komoot.io/api/?limit=5&lang=default&q='+encodeURIComponent(city),{},15000);
+   const f=(g.features||[]).find(x=>x.properties&&x.properties.extent&&(!cc||String(x.properties.countrycode||'').toLowerCase()===cc))||(g.features||[]).find(x=>x.properties&&x.properties.extent);
+   if(f){const p=f.properties,x=p.extent,t={R:'relation',W:'way',N:'node'}[p.osm_type];
+    const res={r:t&&t!=='node'?{type:t,id:+p.osm_id}:null,bbox:[x[3],x[0],x[1],x[2]]};cset(ck,res);return res}
+  }catch(_){}
+  return{r:null,bbox:null};
+ }
+}
+
+/* ---------- Nominatim (запасной) ---------- */
+async function byNom(c){
+ const {city,msg,cc}=c,all=c.niche===ALL,out=[],ok=['shop','amenity','office','craft','leisure','tourism','healthcare'],list=jobsFor(c);
+ for(let i=0;i<list.length;i++){
+  chk();const [nk,term]=list[i];
+  msg.textContent=`Запасной поиск: ${term}… (${i+1}/${list.length})`;if(i)await sleep(1100);
+  let j;try{j=await tf('https://nominatim.openstreetmap.org/search?format=jsonv2&extratags=1&addressdetails=1&limit=50&accept-language=ru&countrycodes='+(cc||'ru')+'&q='+encodeURIComponent(term+' '+city),{},25000)}catch(e){if(!all)throw e;continue}
+  for(const x of j){
+   const e=x.extratags||{},a=x.address||{},name=x.name||'';
+   if(!name||!ok.includes(x.category))continue;
+   const t={...e,name,'addr:street':a.road,'addr:housenumber':a.house_number};
+   if(dead(t))continue;
+   out.push(fromTags(x.osm_type[0]+x.osm_id,t,nk,city,+x.lat,+x.lon,'','OSM'));
+  }
+ }
+ return out;
+}
+
+/* ---------- OpenStreetMap: теги + названия ---------- */
+function cityScopes(city,geo){
+ const out=[];
+ if(geo.r)out.push({pre:`area(${(geo.r.type==='relation'?3600000000:2400000000)+geo.r.id})->.a;`,scope:'(area.a)'});
+ if(geo.bbox)out.push({pre:'',scope:`(${geo.bbox.join(',')})`});
+ out.push({pre:`area["name"="${city.replace(/["\\]/g,'')}"]["boundary"="administrative"]->.a;`,scope:'(area.a)'});
+ return out;
+}
+const OKEYS='[~"^(shop|amenity|office|craft|leisure|tourism|healthcare)$"~"."]';
+function osmParts(niches,scope){
+ const s=new Set();
+ for(const k of niches)for(const [a,b,n] of N[k])s.add(`nwr["${a}"~"^(${b})$"]${n?`["name"~"${n}",i]`:''}${scope};`);
+ return[...s].join('');
+}
+const nameRe=niches=>niches.map(k=>NNAME[k]).filter(Boolean).join('|');
+function ownParts(word,scope){
+ const re=wordList(word).map(w=>w.replace(/[^\p{L}\p{N}\s-]/gu,'').trim()).filter(Boolean).join('|');
+ return`nwr["name"~"${re}",i]${OKEYS}${scope};`;
+}
+async function byOsm(c){
+ const {city,niche,word,msg}=c,all=niche===ALL,scopes=cityScopes(city,c.geo||{});
+ const groups=all?chunk(NK(),4):[[niche]],lim=all?1500:3000;
+ let els=null,lastErr=null;
+ for(const s of scopes){
+  const m=new Map();let done=0,fail=0,stale=false;
+  const jobs=groups.map(g=>async()=>{
+   const custom=!(g[0]&&N[g[0]]);
+   const parts=custom?ownParts(word,s.scope):osmParts(g,s.scope);
+   try{
+    const r=await overpass(`[out:json][timeout:30][maxsize:134217728];${s.pre}(${parts});out center meta ${lim};`,msg);
+    if(r.__stale)stale=true;
+    for(const e of r.elements)m.set(e.type+e.id,e);
+   }catch(e){fail++;lastErr=e;if(e&&e.noNet)throw e}
+   done++;if(all&&groups.length>1)msg.textContent=`OSM: ${done}/${groups.length} групп ниш…`;
+  });
+  await pool(jobs,2);
+  if(m.size){
+   /* второй, «мягкий» проход: поиск по названиям — он тяжёлый, поэтому его сбой не ломает поиск */
+   if(N[niche]||all){
+    const t0=Date.now();let nf=0;
+    for(let i=0;i<groups.length;i++){
+     const re=nameRe(groups[i]);if(!re)continue;
+     chk();if(Date.now()-t0>50000||nf>=2)break;
+     msg.textContent=`OSM: дополнительный поиск по названиям ${i+1}/${groups.length}…`;
+     try{
+      const r=await overpass(`[out:json][timeout:25];${s.pre}(nwr["name"~"${re}",i]${OKEYS}${s.scope};);out center meta ${lim};`,msg,{soft:1});
+      for(const e of r.elements)if(!m.has(e.type+e.id))m.set(e.type+e.id,e);
+     }catch(e){nf++;if(e&&e.noNet)break}
+    }
+   }
+   els=[...m.values()];
+   if(fail&&c.notes)c.notes.push(`OpenStreetMap: часть ниш (${fail} из ${groups.length} групп) не загрузилась — серверы карты были заняты, повторите поиск позже`);
+   if(stale&&c.notes)c.notes.push('OpenStreetMap: серверы недоступны, показаны сохранённые ранее данные');
+   break;
+  }
+ }
+ if(!els){if(lastErr)throw lastErr;return[]}
+ const out=[];
+ for(const e of els){
+  const t=e.tags||{};if(!t.name||dead(t))continue;
+  const nm=all?classifyName(t.name):null,nk=all?((nm&&!LATE.includes(nm)?nm:null)||classify(t)||nm):niche;if(!nk)continue;
+  out.push(fromTags(e.type[0]+e.id,t,nk,city,e.lat??(e.center&&e.center.lat),e.lon??(e.center&&e.center.lon),e.timestamp,'OSM'));
+ }
+ return out;
+}
+
+/* ---------- ещё карты (нужен бесплатный ключ) ---------- */
+const PROV=[
+{name:'Яндекс',k:'ya',pa:1,pn:4,async page(c,term,nk,p){
+ const u=new URL('https://search-maps.yandex.ru/v1/'),b=bb(c.geo);
+ u.searchParams.set('text',term+' '+c.city);u.searchParams.set('lang','ru_RU');u.searchParams.set('type','biz');u.searchParams.set('results','50');u.searchParams.set('skip',String(p*50));
+ if(b){u.searchParams.set('bbox',`${b.w},${b.s}~${b.e},${b.n}`);u.searchParams.set('rspn','1')}
+ const j=await pget('ya',u);
+ if(!j.features)throw new Error(j.message||j.error||'нет ответа');
+ const items=j.features.map(f=>{
+  const pr=f.properties||{},m=pr.CompanyMetaData||{},co=(f.geometry&&f.geometry.coordinates)||[];
+  let vk='',ig='';for(const l of m.Links||[]){const h=l.href||'';if(/vk\.com/i.test(h)&&!vk)vk=h;else if(/instagram\.com/i.test(h)&&!ig)ig=h}
+  const phs=(m.Phones||[]).filter(x=>x.type!=='fax').map(x=>x.formatted).join(';');
+  return mk('y'+(m.id||pr.name+co.join()),m.name||pr.name,nk,c.city,m.address||pr.description||'',phs,m.url||'','',co[1],co[0],{vk,ig,src:'Яндекс',upd:today()});
+ });
+ return{items,more:j.features.length>=50};
+}},
+{name:'Google',k:'gg',pa:1,pn:3,async page(c,term,nk,p,tok){
+ const b=bb(c.geo),body={textQuery:term+' '+c.city,languageCode:'ru',pageSize:20};
+ if(b)body.locationRestriction={rectangle:{low:{latitude:b.s,longitude:b.w},high:{latitude:b.n,longitude:b.e}}};
+ if(tok)body.pageToken=tok;
+ const j=await ppost('gg','https://places.googleapis.com/v1/places:searchText',body,{'X-Goog-FieldMask':'places.id,places.displayName,places.formattedAddress,places.location,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.businessStatus,nextPageToken'});
+ if(j.error)throw new Error(j.error.message||'ошибка Google');
+ const items=(j.places||[]).filter(x=>!x.businessStatus||x.businessStatus==='OPERATIONAL').map(x=>mk('p'+x.id,x.displayName&&x.displayName.text,nk,c.city,(x.formattedAddress||'').replace(/,\s*(Россия|Беларусь|Казахстан)$/,''),x.internationalPhoneNumber||x.nationalPhoneNumber||'',x.websiteUri||'','',x.location&&x.location.latitude,x.location&&x.location.longitude,{rate:x.rating?`★${x.rating} (${x.userRatingCount||0})`:'',src:'Google',upd:today()}));
+ return{items,more:!!j.nextPageToken,tok:j.nextPageToken};
+}},
+{name:'TomTom',k:'tt',pa:1,pn:4,async page(c,term,nk,p){
+ const b=bb(c.geo),u=new URL('https://api.tomtom.com/search/2/poiSearch/'+encodeURIComponent(term+' '+c.city)+'.json');
+ u.searchParams.set('limit','50');u.searchParams.set('ofs',String(p*50));u.searchParams.set('language','ru-RU');u.searchParams.set('countrySet',(c.cc||'ru').toUpperCase());
+ if(b){u.searchParams.set('lat',String(b.lat));u.searchParams.set('lon',String(b.lon));u.searchParams.set('radius',String(radius(b)))}
+ const j=await pget('tt',u);
+ if(!j.results)throw new Error(j.errorText||(j.detailedError&&j.detailedError.message)||'нет ответа');
+ const items=j.results.filter(r=>r.poi&&r.poi.name).map(r=>mk('t'+r.id,r.poi.name,nk,c.city,(r.address&&r.address.freeformAddress)||'',r.poi.phone||'',r.poi.url||'','',r.position&&r.position.lat,r.position&&r.position.lon,{src:'TomTom',upd:today()}));
+ return{items,more:j.results.length>=50};
+}},
+{name:'HERE',k:'he',pa:1,pn:1,async page(c,term,nk){
+ const b=bb(c.geo),u=new URL('https://discover.search.hereapi.com/v1/discover');
+ u.searchParams.set('q',term+' '+c.city);u.searchParams.set('limit','100');u.searchParams.set('lang','ru');
+ u.searchParams.set('at',b?b.lat+','+b.lon:'55.75,37.62');u.searchParams.set('in','countryCode:'+({ru:'RUS',by:'BLR',kz:'KAZ'}[c.cc]||'RUS'));
+ const j=await pget('he',u);
+ if(!j.items)throw new Error(j.error_description||j.title||'нет ответа');
+ const items=j.items.map(x=>{
+  const cs=x.contacts||[],pick=k=>cs.flatMap(g=>(g[k]||[]).map(v=>v.value));
+  return mk('h'+x.id,x.title,nk,c.city,(x.address&&x.address.label)||'',pick('phone').concat(pick('mobile')).join(';'),pick('www')[0]||'','',x.position&&x.position.lat,x.position&&x.position.lng,{email:pick('email')[0]||'',src:'HERE',upd:today()});
+ });
+ return{items,more:false};
+}}];
+async function runProv(P,c){
+ const all=c.niche===ALL,jobs=jobsFor(c),out=[];
+ for(let i=0;i<jobs.length;i++){
+  const [nk,term]=jobs[i];let tok='';
+  for(let p=0;p<(all?P.pa:P.pn);p++){
+   chk();
+   c.msg.textContent=`${P.name}: ${all?`${nk} (${i+1}/${jobs.length})`:term}…`;
+   let r;try{r=await P.page(c,term,nk,p,tok)}catch(e){if(out.length)return out;throw e}
+   out.push(...r.items);tok=r.tok||'';
+   if(!r.more)break;await sleep(150);
+  }
+ }
+ return out;
+}
+
+/* ---------- дополнение контактов с сайтов бизнеса ---------- */
+const PX=[u=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u),u=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u),u=>'https://corsproxy.io/?url='+encodeURIComponent(u),u=>'https://r.jina.ai/'+u,u=>'https://thingproxy.freeboard.io/fetch/'+u];
+async function fetchHtml(u){
+ if(SV.url){try{const tx=await sj('/fetch?url='+encodeURIComponent(u),{raw:1},13000);if(tx&&tx.length>200&&tx[0]!=='{')return tx.slice(0,500000)}catch(e){}}
+ const tasks=PX.map(px=>async sig=>{
+  const c=new AbortController(),on=()=>c.abort(),tm=setTimeout(on,9000);sig.addEventListener('abort',on);
+  try{const r=await fetch(px(u),{signal:c.signal});if(!r.ok)throw new Error('http');const tx=await r.text();if(!tx||tx.length<200)throw new Error('empty');return tx.slice(0,500000)}
+  finally{clearTimeout(tm);sig.removeEventListener('abort',on)}
+ });
+ try{return await race(tasks,1800)}catch(e){return''}
+}
+function contactUrl(h,base){
+ try{
+  const b=new URL(base),links=[...h.matchAll(/href=["']([^"'#\s]+)["']/gi)].map(x=>x[1]).concat([...h.matchAll(/\]\((https?:[^)\s]+)\)/g)].map(x=>x[1]));
+  const m=links.find(x=>/contact|kontakt|контакт|o-nas|about/i.test(x)&&!/^(mailto|tel|javascript):/i.test(x));
+  if(!m)return new URL('/contacts',b).toString();const u=new URL(m,b);return u.hostname.replace(/^www\./,'')===b.hostname.replace(/^www\./,'')?u.toString():'';
+ }catch(e){return''}
+}
+function extract(html){
+ const o={phones:[],email:'',wa:'',tg:'',vk:'',ig:''};
+ const txt=html.replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' ');
+ const raw=[];
+ for(const m of html.matchAll(/tel:([+\d()%\-\s]{9,24})/gi)){try{raw.push(decodeURIComponent(m[1]))}catch(e){raw.push(m[1])}}
+ for(const m of txt.matchAll(/(?:\+7|\b8)[\s\-()]*\d{3}[\s\-()]*\d{3}[\s\-]*\d{2}[\s\-]*\d{2}\b|\+375[\s\-()]*\d{2}[\s\-()]*\d{3}[\s\-]*\d{2}[\s\-]*\d{2}\b/g))raw.push(m[0]);
+ for(const m of html.matchAll(/["']telephone["']\s*:\s*["']([^"']{7,30})["']/gi))raw.unshift(m[1]);
+ for(const m of html.matchAll(/itemprop=["']telephone["'][^>]*>([^<]{7,30})</gi))raw.unshift(m[1]);
+ o.phones=parsePhones(raw.slice(0,14).join(';')).slice(0,3);
+ const badE=/\.(png|jpe?g|gif|svg|webp|css|js)$|sentry|wixpress|example\.|domain\.|yourdomain|@2x|no-?reply/i;
+  const ems=[...html.matchAll(/mailto:([\w.+-]+@[\w-]+\.[\w.-]+)/gi)].map(x=>x[1]).concat(txt.match(/[\w.+-]+@[\w-]+\.[a-z]{2,}/gi)||[]);
+  o.email=(ems.find(x=>!badE.test(x))||'').toLowerCase();
+ const wa=html.match(/(?:wa\.me\/|api\.whatsapp\.com\/send\/?\?phone=|whatsapp:\/\/send\?phone=)\+?(\d{10,13})/i);if(wa){const n=normPhone(wa[1]);if(n)o.wa=n.d}
+ const tg=html.match(/(?:t\.me|telegram\.me)\/(?!share|joinchat|addstickers|\+)([A-Za-z0-9_]{4,32})/i);if(tg)o.tg=tg[1];
+ const vk=html.match(/https?:\/\/(?:www\.)?vk\.com\/(?!share)[\w.\-]+/i);if(vk)o.vk=vk[0];
+ const ig=html.match(/https?:\/\/(?:www\.)?instagram\.com\/(?!p\/|explore|share)[\w.\-]+/i);if(ig)o.ig=ig[0];
+ return o;
+}
+function addMore(l,d){l.more=l.more||[];if(l.ph&&d!==l.ph.disp&&!l.more.includes(d)&&l.more.length<2)l.more.push(d)}
+async function enrich(list,msg){
+ let i=0,done=0;const T0=Date.now();
+ const work=async()=>{
+  while(i<list.length){
+   if(CANCELED||Date.now()-T0>120000)return;
+   const l=list[i++];msg.textContent=`Проверяю сайты бизнесов: ${done}/${list.length}…`;
+   const base=/^https?:/i.test(l.site)?l.site:'http://'+l.site;
+   const h=await fetchHtml(base);done++;
+   if(!h)continue;
+   const x=extract(h);let got=false;
+   if(!x.phones.length){const cu=contactUrl(h,base);if(cu){const h2=await fetchHtml(cu);if(h2){const x2=extract(h2);x.phones=x2.phones;for(const k of['email','wa','tg','vk','ig'])if(!x[k]&&x2[k])x[k]=x2[k]}}}
+   for(const p of x.phones){
+    if(!l.ph){l.ph=p;got=true}
+    else if(p.d!==l.ph.d){if((!l.ph.mob&&p.mob)||(l.ph.tf&&!p.tf)){addMore(l,l.ph.disp);l.ph=p}else addMore(l,p.disp);got=true}
+   }
+   if(!l.ph&&x.wa){const n=normPhone(x.wa);if(n){l.ph=n;got=true}}
+    for(const k of['email','wa','tg','vk','ig'])if(!l[k]&&x[k]){l[k]=x[k];got=true}
+   if(got&&!/сайт/.test(l.src||''))l.src=(l.src?l.src+'+':'')+'сайт';
+  }
+ };
+ await Promise.all([work(),work(),work(),work(),work(),work()]);
+}
+
+/* ---------- кнопка «Найти» ---------- */
+const cityList=v=>[...new Set(String(v||'').split(/[;\n]/).map(x=>x.trim()).filter(x=>x.length>1))].slice(0,10);
+async function searchCity(city,o){
+ const {niche,word,msg,cancelP}=o;
+ const pfx=o.total>1?`[${o.idx}/${o.total}] ${city}: `:'';
+ const m0={set textContent(v){if(!CANCELED)msg.textContent=pfx+v}};
+ const c0={city,niche,word,cc:CC,geo:null,notes:[]};
+ c0.geo=await Promise.race([geoCity(city,CC,m0),cancelP]);
+ const parts={},errs=[],st={};
+ const show=()=>{if(CANCELED)return;m0.textContent=Object.values(st).join(' · ')};
+ const sub=n=>({set textContent(v){st[n]=String(v);show()},get textContent(){return st[n]||''}});
+ const run=async(name,fn)=>{try{const r=await fn(sub(name));if(r.length)parts[name]=r}catch(e){if(e&&e.noNet)NETDOWN=true;errs.push(name+': '+em(e))}delete st[name];show()};
+ const jobs=[];
+ if(hasProv('g2'))jobs.push(run('2ГИС',m=>by2gis(K.g2,city,niche,word,m)));
+ for(const P of PROV)if(hasProv(P.k))jobs.push(run(P.name,m=>runProv(P,{...c0,msg:m})));
+ jobs.push(run('OpenStreetMap',m=>byOsm({...c0,msg:m})));
+ await Promise.race([Promise.all(jobs),cancelP]);chk();
+ if(!Object.keys(parts).length)await run('OSM запасной',m=>byNom({...c0,msg:m}));
+ const PR=['2ГИС','Яндекс','Google','TomTom','HERE','OpenStreetMap','OSM запасной'];
+ let res=dedupe(PR.flatMap(n=>parts[n]||[]));
+ if(!res.length&&errs.length){const er=new Error(errs.join(' → '));er.noNet=NETDOWN;throw er}
+ res.sort((a,b)=>score(b)-score(a));
+ const have=new Set(L.map(x=>x.id)),dk=x=>nn(x.name)+'|'+(x.ph?x.ph.d:''),seen=new Set(L.map(dk));
+ const lim=+$('#lim').value||1e9,fPh=$('#fPh').checked,fSite=$('#fSite').checked,fMob=$('#fMob').checked,fFr=$('#fFresh').checked,fEm=$('#fEmail').checked,fCh=$('#fChain').checked,cnt=new Map();
+ for(const l of res){const k=nn(l.name);cnt.set(k,(cnt.get(k)||0)+1)}
+ if($('#fEnrich').checked&&!fSite){
+  const cand=res.filter(l=>l.site&&(!l.ph||!waN(l)||!l.email)&&!have.has(l.id)).sort((a,b)=>(!!a.ph)-(!!b.ph)).slice(0,SUB.plan()?100:15);
+  if(cand.length)await Promise.race([enrich(cand,m0),cancelP]);
+ }
+ const fDup=$('#fDup').checked,phS=new Set(L.map(x=>x.ph&&x.ph.d).filter(Boolean));
+  let skip=0;const pool2=[];
+ for(const l of res){
+  if(!l.name||have.has(l.id)||(l.ph&&seen.has(dk(l)))||(fDup&&l.ph&&phS.has(l.ph.d)))continue;
+  const a=ageY(l);
+  if((fPh&&!l.ph)||(fSite&&l.site)||(fMob&&!waN(l))||(fEm&&!l.email)||(fCh&&(l.chain||cnt.get(nn(l.name))>=3))||(fFr&&a!=null&&a>3)){skip++;continue}
+  have.add(l.id);seen.add(dk(l));if(l.ph)phS.add(l.ph.d);pool2.push(l);
+ }
+ pool2.sort((a,b)=>score(b)-score(a));
+ let pick=pool2;
+ if(niche===ALL){
+  const g={};for(const l of pool2)(g[l.niche]=g[l.niche]||[]).push(l);
+  const ks=Object.keys(g);pick=[];
+  for(let i=0;pick.length<pool2.length;i++)for(const k of ks)if(g[k][i])pick.push(g[k][i]);
+ }
+ let cap=Math.min(lim,SUB.quota());if(pick.length>cap)HITCAP=true;
+ pick=pick.slice(0,cap);
+ L=[...pick,...L];save();SUB.used(pick.length);updatePill();
+ return{city,add:pick.length,found:res.length,skip,withPh:pick.filter(x=>x.ph).length,multi:pick.filter(x=>(x.src||'').split('+').length>1).length,
+  src:PR.filter(n=>parts[n]).map(n=>`${n} ${parts[n].length}`).join(' + ')||'—',
+  notes:[...c0.notes,...(errs.length&&res.length?['не сработало: '+errs.join('; ')]:[])],
+  geoBad:!c0.geo.bbox&&!c0.geo.r,hintEnrich:!!(skip&&fPh&&!$('#fEnrich').checked)};
+}
+let HIST=[];try{HIST=JSON.parse(localStorage.getItem('cc_hist')||'[]')}catch(e){}
+function renderHist(){$('#hist').innerHTML=HIST.length?HIST.map((h,i)=>`<button data-h="${i}">${esc(h.city)} · ${esc(h.niche==='Своя ниша'?h.word:h.niche)}</button>`).join(''):'<span class="sub">Здесь появятся ваши последние поиски</span>'}
+function pushHist(h){HIST=[h,...HIST.filter(x=>!(x.city===h.city&&x.niche===h.niche&&x.word===h.word&&x.cc===h.cc))].slice(0,8);try{localStorage.setItem('cc_hist',JSON.stringify(HIST))}catch(e){}renderHist()}
+$('#hist').onclick=e=>{const h=HIST[+e.target.dataset.h];if(!h)return;$('#cc').value=h.cc||'ru';$('#city').value=h.city;$('#niche').value=h.niche;$('#niche').onchange();$('#ownq').value=h.word||''};
+$('#go').onclick=async()=>{
+ const cities=cityList($('#city').value),niche=$('#niche').value,btn=$('#go'),msg=$('#msg');
+ const word=$('#ownq').value.replace(/["\\]/g,'').trim();
+ if(!cities.length){msg.textContent='Введите город';return}
+ if(SUB.quota()<=0){msg.textContent=SUB.limitMsg();payOpen();return}
+ if(niche!==ALL&&!N[niche]&&!word){msg.textContent='Впишите, что искать';return}
+ try{localStorage.setItem('cc_me',$('#me').value);localStorage.setItem('cc_city',$('#city').value.trim());localStorage.setItem('cc_cc',$('#cc').value);localStorage.setItem('cc_niche',niche)}catch(e){}
+ CC=$('#cc').value;HITCAP=false;btn.disabled=true;CANCELED=false;NETDOWN=false;$('#stop').classList.remove('hide');{const w=TGW();try{w&&w.enableClosingConfirmation()}catch(_){}}
+ saveF();
+ const cancelP=new Promise((_,rej)=>{CANHOOK=()=>rej(new Error('поиск отменён'))});cancelP.catch(()=>{});
+ try{
+  const tot={add:0,ph:0,found:0,skip:0},per=[],cerrs=[],notes=[];let last=null;
+  for(let i=0;i<cities.length;i++){
+   chk();
+   try{
+    const r=await searchCity(cities[i],{niche,word,msg,cancelP,idx:i+1,total:cities.length});
+    last=r;tot.add+=r.add;tot.ph+=r.withPh;tot.found+=r.found;tot.skip+=r.skip;per.push(`${r.city} +${r.add}`);notes.push(...r.notes);
+   }catch(e){if(CANCELED)throw e;cerrs.push(cities[i]+': '+em(e));if(e&&e.noNet)NETDOWN=true}
+  }
+  if(!tot.found&&cerrs.length){const er=new Error(cerrs.join(' → '));er.noNet=NETDOWN;throw er}
+  if(tot.found)pushHist({city:$('#city').value.trim(),niche,word,cc:CC});
+  const note=notes.length?` (${[...new Set(notes)].join('; ')})`:'',fail=cerrs.length?` Не удалось: ${cerrs.join('; ')}.`:'';
+  if(cities.length===1){
+   const r=last;
+   msg.textContent=`Источники: ${r.src}. После объединения: ${r.found}. Добавлено новых: ${r.add}, с телефоном: ${r.withPh}, подтверждено в нескольких источниках: ${r.multi}. Отсеяно фильтрами: ${r.skip}.`+(r.add?'':' Снимите фильтры, смените нишу или проверьте название города.')+(!r.add&&r.geoBad?' Город не найден на карте — выберите вариант из подсказки.':'')+(r.hintEnrich?' Включите «Дополнять контакты с сайтов» — найдётся больше телефонов.':'')+note;
+   if(r.add){F='all';$('#res').textContent=`Добавлено ${r.add} из ${r.found} найденных (${r.src})`+note+(r.skip?`, отсеяно фильтрами: ${r.skip}`:'');tab(2)}
+  }else{
+   msg.textContent=`Готово, городов: ${cities.length}. Добавлено ${tot.add} (с телефоном ${tot.ph}), найдено ${tot.found}, отсеяно фильтрами ${tot.skip}. По городам: ${per.join(', ')}.`+fail+note;
+   if(tot.add){F='all';$('#res').textContent=`Добавлено ${tot.add} бизнесов из ${cities.length} городов`+(tot.skip?`, отсеяно фильтрами: ${tot.skip}`:'');tab(2)}
+  }
+ }catch(e){
+  const sandbox=location.protocol!=='file:'&&(location.protocol==='blob:'||location.origin==='null'||/claude\.(ai|com)/.test(location.hostname));
+  msg.textContent=(sandbox?'Страница открыта внутри Claude, где сеть закрыта — откройте файл в Chrome или на хостинге. ':'Не удалось получить данные: ')+em(e)+(e&&e.noNet?'. Нажмите «Проверить подключение к картам», чтобы увидеть, какие серверы доступны.':'. Бесплатные серверы карты иногда перегружены: подождите минуту и повторите, либо подключите ключи карт (2ГИС, Яндекс) в «Помощь» — тогда поиск не зависит от бесплатных серверов.');
+ }
+ if(CANCELED)msg.textContent='Поиск отменён.';
+ else if(HITCAP){HITCAP=false;msg.textContent+=' '+SUB.limitMsg();payOpen()}
+ btn.disabled=false;$('#stop').classList.add('hide');{const w=TGW();try{w&&w.disableClosingConfirmation()}catch(_){}}
+};
+$('#stop').onclick=()=>{CANCELED=true;$('#msg').textContent='Отменяю…';try{CANHOOK&&CANHOOK()}catch(e){}};
+
+const mapUrl=l=>l.lat?`https://yandex.ru/maps/?pt=${l.lon},${l.lat}&z=17&l=map`:`https://yandex.ru/maps/?text=${encodeURIComponent(l.name+' '+l.city)}`;
+function render(){
+ const fnEl=$('#fn'),cur=fnEl.value||'all',ns=[...new Set(L.map(x=>x.niche))];
+ fnEl.innerHTML='<option value="all">Все ниши</option>'+ns.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+ fnEl.value=ns.includes(cur)?cur:'all';fnEl.classList.toggle('hide',ns.length<2);
+ const fn=fnEl.value;
+ const V=L.filter(x=>x.st!=='client');const c={all:V.length};ST.forEach(([k])=>c[k]=L.filter(x=>x.st===k).length);c.new=L.filter(x=>x.st==='new').length;
+ $('#chips').innerHTML=[['all','Все'],['new','Новые'],...ST.filter(x=>x[0]!=='client')].map(([k,n])=>`<button data-f="${k}" class="${F===k?'on':''}">${n} ${c[k]}</button>`).join('');
+ const q=$('#q').value.toLowerCase();
+ $('#qchips').innerHTML=QFN.map(([k,n])=>`<button data-q="${k}" class="${QF[k]?'on':''}">${n}</button>`).join('');
+ let arr=V.filter(x=>(F==='all'||x.st===F)&&(fn==='all'||x.niche===fn)&&(!QF.ph||x.ph)&&(!QF.nosite||!x.site)&&(!QF.mob||waN(x))&&(!QF.hot||score(x)>=9)&&(!QF.due||(x.due&&x.due<=today()))&&(!q||(x.name+x.addr+x.city+(x.ph?x.ph.disp+x.ph.d:'')+(x.more||[]).join(' ')).toLowerCase().includes(q)));
+ const so=$('#srt').value;
+ if(so==='best')arr=[...arr].sort((a,b)=>score(b)-score(a));
+ else if(so==='fresh')arr=[...arr].sort((a,b)=>(b.upd||'').localeCompare(a.upd||''));
+ else if(so==='name')arr=[...arr].sort((a,b)=>a.name.localeCompare(b.name,'ru'));
+ VIS=arr;{const e=$('#qfn');if(e)e.textContent=L.filter(x=>(x.st==='wrote'||x.st==='replied')&&x.due&&x.due<=today()).length}$('#cnt').textContent=V.length?`Показано ${arr.length} из ${V.length}`:'';
+ if(L.length&&$('#res').textContent&&F!=='all')$('#res').textContent='';
+ const lk=[F,fn,JSON.stringify(QF),q,so,L.length].join('|');if(lk!==LK){PG=1;LK=lk}
+ const shown=arr.slice(0,PG*50);
+ $('#list').innerHTML=arr.length?shown.map(card).join('')+(arr.length>shown.length?`<button class="btn main" data-a="more" style="margin:0 0 14px">Показать ещё (осталось ${arr.length-shown.length})</button>`:''):(V.length?'<div class="empty">Нет лидов под выбранные фильтры.</div>':'<div class="empty">Пока пусто. Найдите бизнесов на вкладке «Поиск».</div>');
+}
+const webU=u=>esc(/^https?:/i.test(u)?u:'http://'+u);
+function card(l){
+ const p=l.ph,y=ageY(l);
+ const fr=LIVE.test(l.src||'')?`<span class="tag g">актуально · ${esc(l.src)}</span>`:(l.upd?`<span class="tag ${y>4?'r':y>2?'y':''}">OSM: обновлено ${esc(l.upd.slice(0,4))}</span>`:'');
+ const ex=[l.vk&&`<a class="btn" href="${webU(l.vk)}" target="_blank" rel="noopener">VK</a>`,l.ig&&`<a class="btn" href="${webU(l.ig)}" target="_blank" rel="noopener">Instagram</a>`,l.email&&`<a class="btn" href="mailto:${esc(l.email)}">Email</a>`].filter(Boolean).join('');
+ return `<div class="box lead"><button class="x" data-a="del" data-id="${l.id}">×</button>
+ <div class="name">${esc(l.name)}</div><div class="sub">${esc(l.niche)} · ${esc(l.city)}</div>
+ ${l.addr?`<div style="margin-top:6px">${esc(l.addr)}</div>`:''}
+ ${p?`<a class="ph" href="tel:+${p.d}">${esc(p.disp)}</a>${l.more&&l.more.length?`<div class="sub">${l.more.map(esc).join(' · ')}</div>`:''}`:`<div class="sub" style="margin:8px 0">Телефон не указан · найти: <a href="https://yandex.ru/maps/?text=${encodeURIComponent(l.name+' '+l.city)}" target="_blank" rel="noopener" style="color:var(--blue)">Яндекс</a> · <a href="https://2gis.ru/search/${encodeURIComponent(l.name+' '+l.city)}" target="_blank" rel="noopener" style="color:var(--blue)">2ГИС</a> · <a href="https://www.google.com/search?q=${encodeURIComponent(l.name+' '+l.city+' телефон')}" target="_blank" rel="noopener" style="color:var(--blue)">Google</a></div>`}
+ ${l.site?`<span class="tag">есть сайт</span>`:`<span class="tag g">${l.onlySoc?'нет сайта · только соцсеть':'нет сайта'}</span>`}${l.wa?'<span class="tag g">есть WhatsApp</span>':(p&&p.mob?'<span class="tag">мобильный — вероятен WhatsApp</span>':'')}${l.rate?`<span class="tag">${esc(l.rate)}</span>`:''}${l.due&&l.st!=='new'&&l.due<=today()?'<span class="tag r">пора связаться</span>':''}${p&&p.tf?'<span class="tag r">8-800 — не личный номер</span>':''}${fr}${score(l)>=9?'<span class="tag g">★ горячий лид</span>':''}${l.by&&l.st!=='new'?`<span class="tag y">${esc((ST.find(x=>x[0]===l.st)||[0,l.st])[1])} · ${esc(l.by)}</span>`:''}
+ <div class="row">${p?`<a class="btn w" href="tel:+${p.d}">Позвонить</a>`:''}${waN(l)?`<button class="btn w" data-a="qwa" data-id="${l.id}">WhatsApp</button>`:''}</div>
+  <div class="row"><a class="btn" href="${mapUrl(l)}" target="_blank" rel="noopener">Открыть на карте</a><button class="btn" data-a="sc" data-id="${l.id}">✦ Скрипт</button>${l.site?`<a class="btn" href="${webU(l.site)}" target="_blank" rel="noopener">Сайт</a>`:''}${ex}</div>
+ <details class="nt"${l.note||l.due?' open':''}><summary class="sub">Заметка и дата связи${l.due?' · '+esc(l.due.split('-').reverse().join('.')):''}</summary><textarea class="note" data-k="note" data-id="${l.id}" placeholder="Что сказали, о чём договорились…">${esc(l.note||'')}</textarea><div class="klab">Связаться</div><input type="date" data-k="due" data-id="${l.id}" value="${esc(l.due||'')}"></details>
+ <div class="st">${ST.map(([k,n])=>`<button class="${k}${l.st===k?' on':''}" data-a="st" data-v="${k}" data-id="${l.id}">${n}</button>`).join('')}</div></div>`;
+}
+$('#qchips').onclick=e=>{const k=e.target.dataset.q;if(k){QF[k]=QF[k]?0:1;render()}};
+$('#srt').onchange=()=>render();
+$('#chips').onclick=e=>{const f=e.target.dataset.f;if(f){F=f;render()}};
+$('#q').oninput=render;
+$('#list').oninput=e=>{const k=e.target.dataset.k;if(!k)return;const l=L.find(x=>x.id===e.target.dataset.id);if(l){l[k]=e.target.value;save()}};
+$('#list').onchange=e=>{if(e.target.dataset.k==='due'){render();return}const id=e.target.dataset.t;if(id){open[id]=+e.target.value;render()}};
+$('#list').onclick=e=>{
+ const b=e.target.closest('[data-a]');if(!b)return;
+ const id=b.dataset.id,l=L.find(x=>x.id===id),a=b.dataset.a;
+ if(a==='more'){PG++;render();return}
+ const txt=()=>($('#ta'+id)||{}).value||'';
+ if(a==='st'){l.st=l.st===b.dataset.v?'new':b.dataset.v;l.by=meN();if(l.st==='wrote'){l.wts=Date.now();if(!l.due)l.due=addD(3)}else if(l.st==='replied'&&!l.due)l.due=addD(2);else if(l.st==='refused')l.due='';save();if(l.st==='client'){$('#res').textContent='«'+l.name+'» перенесён во вкладку «Клиенты»';setTimeout(()=>{$('#res').textContent=''},5000)}render()}
+ else if(a==='del'){L=L.filter(x=>x.id!==id);save();render()}
+ else if(a==='sc')shOpen(id)
+  else if(a==='qwa'){ext(`https://wa.me/${waN(l)}?text=${encodeURIComponent(genText(l,l.site?'first':'nosite',0))}`,'_blank');if(l.st==='new'){l.st='wrote';l.wts=Date.now();l.by=meN();if(!l.due)l.due=addD(3);save();render()}}
+ else if(a==='copy'){copyText(txt()).then(()=>{b.textContent='Скопировано'},()=>{$('#ta'+id).select()})}
+ else if(a==='wa'){ext(`https://wa.me/${waN(l)}?text=${encodeURIComponent(txt())}`,'_blank');if(l.st==='new'){l.st='wrote';l.wts=Date.now();l.by=meN();if(!l.due)l.due=addD(3);save();render()}}
+ else if(a==='tg'){try{copyText(txt())}catch(_){}ext(tgU(l),'_blank');if(l.st==='new'){l.st='wrote';l.wts=Date.now();l.by=meN();if(!l.due)l.due=addD(3);save();render()}}
+};
+const today=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+function ccard(l){
+ const p=l.ph,t=today(),tg=tgU(l);
+ const tag=l.due?(l.due<t?'<span class="tag r">просрочено</span>':l.due===t?'<span class="tag y">сегодня</span>':''):'';
+ return `<div class="box lead"><button class="x" data-a="cdel" data-id="${l.id}">×</button>
+ <div class="name">${esc(l.name)}</div><div class="sub">${esc(l.niche)} · ${esc(l.city)}</div>
+ ${l.addr?`<div style="margin-top:6px">${esc(l.addr)}</div>`:''}
+ ${p?`<a class="ph" href="tel:+${p.d}">${esc(p.disp)}</a>`:''}${tag}
+ <div class="row"><a class="btn w" href="${mapUrl(l)}" target="_blank" rel="noopener">Открыть на карте</a>${l.site?`<a class="btn" href="${esc(/^https?:/.test(l.site)?l.site:'http://'+l.site)}" target="_blank" rel="noopener">Сайт</a>`:''}</div>
+ <div class="row">${p?`<a class="btn" href="tel:+${p.d}">Позвонить</a>`:''}${waN(l)?`<button class="btn" data-a="cwa" data-id="${l.id}">WhatsApp</button>`:''}${tg?`<button class="btn" data-a="ctg" data-id="${l.id}">Telegram</button>`:''}</div>
+ <div class="klab">Что за компания, о чём договорились</div><textarea class="note" data-k="note" data-id="${l.id}" placeholder="Услуги, цена, контактное лицо, пожелания…">${esc(l.note||'')}</textarea>
+ <div class="klab">Следующий шаг</div><input data-k="next" data-id="${l.id}" value="${esc(l.next||'')}" placeholder="Например: отправить макет">
+ <div class="klab">Когда связаться</div><input type="date" data-k="due" data-id="${l.id}" value="${esc(l.due||'')}">
+ <div class="row"><button class="btn" data-a="cback" data-id="${l.id}">Вернуть в лиды</button></div></div>`;
+}
+function rc(){
+ const C=L.filter(x=>x.st==='client').sort((a,b)=>(a.due||'9')<(b.due||'9')?-1:1),t=today(),n=C.filter(x=>x.due&&x.due<=t).length;
+ $('#csum').textContent=C.length?`Клиентов: ${C.length}`+(n?` · пора связаться: ${n}`:''):'';
+ $('#clist').innerHTML=C.length?C.map(ccard).join(''):'<div class="empty">Здесь появятся компании, которых вы отметили как «Клиент» во вкладке «Лиды».</div>';
+}
+$('#clist').oninput=e=>{const k=e.target.dataset.k;if(!k)return;const l=L.find(x=>x.id===e.target.dataset.id);if(l){l[k]=e.target.value;save()}};
+$('#clist').onchange=e=>{if(e.target.dataset.k==='due')rc()};
+$('#clist').onclick=e=>{
+ const b=e.target.closest('[data-a]');if(!b)return;const l=L.find(x=>x.id===b.dataset.id),a=b.dataset.a,me=$('#me').value.trim();
+ const txt=()=>genText(l,'rem',0);
+ if(a==='cback'){l.st='replied';save();rc()}
+ else if(a==='cdel'){if(confirm('Удалить клиента «'+l.name+'»?')){L=L.filter(x=>x!==l);save();rc()}}
+ else if(a==='cwa')ext(`https://wa.me/${waN(l)}?text=${encodeURIComponent(txt())}`,'_blank');
+ else if(a==='ctg'){try{copyText(txt())}catch(_){}ext(tgU(l),'_blank')}
+};
+$('#cph').onclick=()=>{const a=VIS.filter(l=>l.ph),t=a.map(l=>l.name+' — '+l.ph.disp).join('\n');if(!t){toast('Нет номеров в списке');return}copyText(t).then(()=>toast('Скопировано номеров: '+a.length),()=>toast('Не удалось скопировать'))};
+function exportCsv(list,fname){
+ if(!list.length){toast('Нечего экспортировать');return}
+ const sn=k=>(ST.find(x=>x[0]===k)||['','Новый'])[1];
+ const rows=[['Название','Ниша','Город','Адрес','Телефон','Доп. телефоны','Сайт','Статус','Заметка','Следующий шаг','Когда связаться','Email','WhatsApp','VK','Instagram','Рейтинг','Данные обновлены','Источник']].concat(list.map(l=>[l.name,l.niche,l.city,l.addr,l.ph?l.ph.disp:'',(l.more||[]).join(' / '),l.site,l.st==='new'?'Новый':sn(l.st),l.note||'',l.next||'',l.due||'',l.email||'',waN(l)?'+'+waN(l):'',l.vk||'',l.ig||'',l.rate||'',l.upd||'',l.src||'']));
+ const cg=v=>{v=String(v??'');return /^([=@\t\r]|[+\-]\D)/.test(v)?"'"+v:v};
+ const csv='\ufeff'+rows.map(r=>r.map(v=>`"${cg(v).replace(/"/g,'""')}"`).join(';')).join('\n');
+ if(TGW()){openSheetHtml(`<button class="cl" data-s="close">×</button><h3>Экспорт CSV</h3><div class="sub" style="margin:12px 0">В Telegram файлы не скачиваются — скопируйте текст и вставьте в Excel / Google Таблицы (разделитель «;») или сохраните в заметки.</div><textarea id="shta" readonly></textarea><div class="row"><button class="btn w" data-s="csvcopy">Копировать всё</button></div>`);$('#shta').value=csv;return}
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=fname+'-'+today()+'.csv';document.body.appendChild(a);a.click();a.remove();toast('Файл сохранён');
+}
+const openSheetHtml=h=>{$('#sh').innerHTML=h;$('#sheet').classList.remove('hide')};
+$('#csv').onclick=()=>exportCsv(VIS,'leads');
+$('#csvall').onclick=()=>exportCsv(L,'leads-all');
+function addD(n){const d=new Date();d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function dl(t,f,mime,title){if(TGW()){openSheetHtml(`<button class="cl" data-s="close">×</button><h3>${title}</h3><div class="sub" style="margin:12px 0">Скопируйте текст и сохраните в файл на устройстве.</div><textarea id="shta" readonly></textarea><div class="row"><button class="btn w" data-s="csvcopy">Копировать всё</button></div>`);$('#shta').value=t;return}
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:mime}));a.download=f;document.body.appendChild(a);a.click();a.remove();toast('Файл сохранён')}
+$('#xls').onclick=()=>{const a=VIS;if(!a.length){toast('Нечего экспортировать');return}
+ const H=['Название','Ниша','Город','Адрес','Телефон','WhatsApp','Сайт','Email','Статус','Заметка','Связаться'],sn=k=>(ST.find(x=>x[0]===k)||['','Новый'])[1];
+ const rows=a.map(l=>[l.name,l.niche,l.city,l.addr,l.ph?l.ph.disp:'',waN(l)?'https://wa.me/'+waN(l):'',l.site,l.email,sn(l.st),l.note||'',l.due||'']);
+ const t='<html><head><meta charset="utf-8"></head><body><table border="1"><tr>'+H.map(h=>`<th>${esc(h)}</th>`).join('')+'</tr>'+rows.map(r=>'<tr>'+r.map(v=>`<td style="mso-number-format:'\\@'">${esc(v)}</td>`).join('')+'</tr>').join('')+'</table></body></html>';
+ dl('\ufeff'+t,'leads-'+today()+'.xls','application/vnd.ms-excel','Excel')};
+$('#vcf').onclick=()=>{
+ const a=VIS.filter(l=>l.ph);if(!a.length){toast('Нет номеров в списке');return}
+ const q=v=>String(v||'').replace(/([\\;,])/g,'\\$1').replace(/\r?\n/g,' ');
+ const v=a.map(l=>['BEGIN:VCARD','VERSION:3.0','FN:'+q(l.name),'ORG:'+q(l.name),'TEL;TYPE=CELL:+'+l.ph.d,...(l.more||[]).map(m=>'TEL;TYPE=WORK:'+m.replace(/[^\d+]/g,'')),l.email?'EMAIL:'+q(l.email):'',l.site?'URL:'+q(l.site):'',l.addr?'ADR;TYPE=WORK:;;'+q(l.addr)+';'+q(l.city)+';;;':'','NOTE:'+q(l.niche),'END:VCARD'].filter(Boolean).join('\r\n')).join('\r\n');
+ dl(v,'leads-'+today()+'.vcf','text/vcard','Контакты vCard (.vcf)');
+};
+$('#cwa').onclick=()=>{const a=VIS.filter(l=>waN(l)),t=a.map(l=>l.name+' — https://wa.me/'+waN(l)).join('\n');if(!t){toast('Нет WhatsApp-номеров в списке');return}copyText(t).then(()=>toast('Скопировано ссылок: '+a.length),()=>toast('Не удалось скопировать'))};
+$('#delnp').onclick=()=>{const n=L.filter(l=>!l.ph&&l.st==='new').length;if(!n){toast('Таких лидов нет');return}if(confirm('Удалить '+n+' новых лидов без телефона? Лиды со статусом и клиенты останутся.')){L=L.filter(l=>l.ph||l.st!=='new');save();render()}};
+$('#bk').onclick=()=>{try{localStorage.setItem('cc_bk',Date.now())}catch(e){}
+ const data=JSON.stringify({app:'leads',v:1,at:new Date().toISOString(),me:meN(),leads:L,my:MY});
+ if(TGW()){openSheetHtml(`<button class="cl" data-s="close">×</button><h3>Резервная копия</h3><div class="sub" style="margin:12px 0">Скопируйте текст и сохраните в «Избранное» Telegram или в заметки. Для восстановления вставьте его обратно.</div><textarea id="shta" readonly></textarea><div class="row"><button class="btn w" data-s="csvcopy">Копировать</button></div>`);$('#shta').value=data;return}
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));a.download='leads-backup-'+today()+'.json';document.body.appendChild(a);a.click();a.remove();toast('Копия сохранена');
+};
+$('#rs').onclick=()=>{
+ openSheetHtml(`<button class="cl" data-s="close">×</button><h3>Восстановить из копии</h3><div class="sub" style="margin:12px 0">Вставьте текст копии или выберите файл. Существующие лиды сохранятся, недостающие добавятся.</div><textarea id="shta" placeholder="Текст резервной копии"></textarea><div class="row"><label class="btn" style="margin:0">Выбрать файл<input type="file" id="rsf" accept=".json,application/json" style="display:none"></label><button class="btn w" data-s="rsgo">Восстановить</button></div><div class="msg" id="rsm"></div>`);
+ $('#rsf').onchange=async e=>{const f=e.target.files[0];if(f)$('#shta').value=await f.text()};
+};
+function doRestore(t){
+ const m=$('#rsm');let j;try{j=JSON.parse(t)}catch(e){m.textContent='Не удалось прочитать: это не файл резервной копии.';return}
+ const arr=(j&&Array.isArray(j.leads)?j.leads:[]).map(cleanLead).filter(Boolean);
+ if(!arr.length){m.textContent='В копии нет лидов.';return}
+ const loc=new Map(L.map(l=>[l.id,l]));let add=0,upd=0;
+ for(const r of arr){const l=loc.get(r.id);delete DEL[r.id];if(!l){L.push(r);add++}else if((r.ts||0)>(l.ts||0)){Object.assign(l,r);upd++}}
+ if(Array.isArray(j.my)){for(const x of j.my)if(typeof x==='string'&&x.length<3000&&!MY.includes(x))MY.push(x);saveMy()}
+ if(!meN()&&typeof j.me==='string'){$('#me').value=j.me.slice(0,60);try{localStorage.setItem('cc_me',$('#me').value)}catch(e){}}
+ save();render();m.textContent=`Готово: добавлено ${add}, обновлено ${upd}.`;
+}
+$('#clr').onclick=()=>{if(confirm(SV.sync?'Удалить все лиды у ВСЕЙ команды?':'Удалить все лиды?')){L=[];save();render()}};
+try{document.querySelector('.top b').textContent=CONFIG.brand;document.title=CONFIG.brand+' — поиск бизнесов с телефонами'}catch(e){}
+$('#ver').textContent='Версия '+CONFIG.version;
+if(CONFIG.support)$('#sup').innerHTML=`<a href="${esc(CONFIG.support)}" target="_blank" rel="noopener" style="color:var(--blue)">${esc(CONFIG.supportLabel)}</a>`;
+try{if(localStorage.getItem('cc_intro'))$('#intro').classList.add('hide')}catch(e){}
+$('#introx').onclick=()=>{$('#intro').classList.add('hide');try{localStorage.setItem('cc_intro','1')}catch(e){}};
+renderHist();
+render();srcLine();SVinit();
+$('#subpill').onclick=()=>{tab(1);window.scrollTo(0,0)};$('#subbuy1').onclick=()=>buyNow(1);$('#subbuy2').onclick=()=>buyNow(2);$('#qgo').onclick=()=>{if(!VIS.some(l=>l.st==='new')){toast('Нет новых лидов в списке');return}SKIP.clear();QM='new';qRender()};$('#qfu').onclick=()=>{SKIP.clear();QM='due';if(!L.some(l=>(l.st==='wrote'||l.st==='replied')&&l.due&&l.due<=today())){toast('Сегодня напоминать некому');return}qRender()};
+$('#subgo').onclick=()=>{const m=$('#subm'),e=redeem($('#promo2').value);if(e){m.style.color='var(--bad)';m.textContent=e;return}$('#promo2').value='';m.style.color='var(--ok)';m.textContent='✓ Тариф «'+PN[SUB.last]+'» активирован на 30 дней. Приятной работы!'};
+updatePill();setInterval(updatePill,60000);window.addEventListener('pagehide',()=>SUB.save());
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+try{const lb=+localStorage.getItem('cc_bk')||0;if(L.length>=20&&Date.now()-lb>6048e5)setTimeout(()=>toast('Сохраните резервную копию: «Помощь» → «Сохранить копию»'),2500)}catch(e){}
+</script></body></html>
